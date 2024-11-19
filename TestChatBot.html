@@ -65,7 +65,7 @@
      //       }
      //   });
 
-     <!--   Genesys("subscribe", "MessagingService.messagesReceived", function (o) {
+     Genesys("subscribe", "MessagingService.messagesReceived", function (o) {
             console.log(o)
             try {
                 if (sessionStorage.getItem('gc_widget') === 'false' && o.data.messages[0].direction === 'Outbound') {
@@ -80,7 +80,7 @@
             } catch (err) {
                 console.error(err)
             }
-        }); -->
+        });
         Genesys("subscribe", "Conversations.closed", function (o) { sessionStorage.setItem('gc_widget', 'false') });
         Genesys("subscribe", "Conversations.opened", function (o) { sessionStorage.setItem('gc_widget', 'true') });
         //Notification End----->
