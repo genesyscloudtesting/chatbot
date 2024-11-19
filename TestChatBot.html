@@ -5,7 +5,7 @@
     <head>
         <meta charset="utf-8">
 
-        <title>AI Week Expo Experiments</title>
+        <title>AI Week Expo Experiments - Customer Assistant</title>
 
         <!-- Load external CSS styles -->
         <link rel="stylesheet" href="styles.css">
@@ -85,7 +85,7 @@
         Genesys("subscribe", "Conversations.opened", function (o) { sessionStorage.setItem('gc_widget', 'true') });
         //Notification End----->
     </script>
-        <h1>AI Week Expo Experiments</h1>
+        <h1>AI Week Expo Experiments - Customer Assistant</h1>
         <br>
         <br>
         <img src="AI Expo background.png" alt="AI Expo">
@@ -112,21 +112,9 @@
 
 <!-- Element that opens the widget on click. It does not have to be an input -->
 <input placeholder="Search here" id="searchWidgetTrigger" />
-
-        <br>
-        <br>
-        <strong>Agent Assistant Prototype:</strong>
-        <!-- Widget JavaScript bundle -->
-<script src="https://cloud.google.com/ai/gen-app-builder/client?hl=en_GB"></script>
-
-<!-- Search widget element is not visible by default -->
-<gen-search-widget
-  configId="f08e2d4c-2b51-4ea5-a748-5011c8654479"
-  triggerId="searchWidgetTrigger">
-</gen-search-widget>
-
-<!-- Element that opens the widget on click. It does not have to be an input -->
-<input placeholder="Search here" id="searchWidgetTrigger" />
+      <br>
+      <br>
+      <a href="https://genesyscloudtesting.github.io/chatbot/TestAgentChatBot.html">Try Agent Assistant</a>
       <br>
       <br>
       <button onclick="clearSession()">Clear Session</button>
