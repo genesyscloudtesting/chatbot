@@ -1,0 +1,126 @@
+
+  <!doctype html>
+
+<html>
+    <head>
+        <meta charset="utf-8">
+
+        <title>AI Week Expo Experiments - Agent Assistant</title>
+
+        <!-- Load external CSS styles -->
+        <link rel="stylesheet" href="styles.css">
+
+        <script type="text/javascript" charset="utf-8">
+        (function (g, e, n, es, ys) {
+         g['_genesysJs'] = e;
+         g[e] = g[e] || function () {
+              (g[e].q = g[e].q || []).push(arguments)
+         };
+         g[e].t = 1 * new Date();
+         g[e].c = es;
+         ys = document.createElement('script'); ys.async = 1; ys.src = n; ys.charset = 'utf-8'; document.head.appendChild(ys);
+        })(window, 'Genesys', 'https://apps.mypurecloud.com.au/genesys-bootstrap/genesys.min.js', {
+          environment: 'apse2',
+          deploymentId: '59584f33-2cf1-464e-ad7b-5d94b18de140',
+          debug: true
+        });
+        </script>
+        
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
+    </head>
+
+    <body>
+    <header>
+        <h1></h1>   
+    </header>     
+    <div class="position-fixed bottom-0 end-0 p-2" style="max-width: 300px">
+        <button type="button" class="btn btn-primary" style="width: 100%" onclick="openChat()">
+            <img src="NCSChaticon.png" width="100" height="50">
+            
+           
+        </button>
+    </div>
+
+    <script>
+           function home() {
+            document.location.href = "https://genesyscloudtesting.github.io/chatbot/TestChatBot.html"
+        }
+           function openChat() {
+            Genesys("command", "Messenger.open");
+        };
+
+        function clearSession() {
+            Genesys('command', 'Identifiers.purgeAll', {});
+            home();
+        }
+
+     // Genesys("subscribe", "Messenger.ready", function(o){ console.log("Launcher Ready Event"); Genesys("command", "Messenger.open");});
+
+     
+         //Notification Start----->
+        //Notification.requestPermission().then(function (permission) {
+            // If the user accepts, let's create a notification
+      //      if (permission === "granted") {
+     //           console.log("notification permission granted")
+     //       }
+     //   });
+
+     <!--   Genesys("subscribe", "MessagingService.messagesReceived", function (o) {
+            console.log(o)
+            try {
+                if (sessionStorage.getItem('gc_widget') === 'false' && o.data.messages[0].direction === 'Outbound') {
+                    var notification = new Notification("New Message", { body: o.data.messages[0].text, icon: "https://dhqbrvplips7x.cloudfront.net/contact-center/5000-5000/img/favicon.ico" });
+                    Genesys("command", "Messenger.open")
+                }
+                if (document.hasFocus() === false) {
+                   var notification = new Notification("New Message", { body: o.data.messages[0].text, icon: "https://dhqbrvplips7x.cloudfront.net/contact-center/5000-5000/img/favicon.ico" });
+                   Genesys("command", "Messenger.open")
+
+                }
+            } catch (err) {
+                console.error(err)
+            }
+        }); -->
+        Genesys("subscribe", "Conversations.closed", function (o) { sessionStorage.setItem('gc_widget', 'false') });
+        Genesys("subscribe", "Conversations.opened", function (o) { sessionStorage.setItem('gc_widget', 'true') });
+        //Notification End----->
+    </script>
+        <h1>AI Week Expo Experiments - Agent Assistant</h1>
+        <br>
+        <br>
+        <img src="AI Expo background.png" alt="AI Expo">
+        <br>
+        Ask me questions about products, features and services as if you are an Agent. This is the main purpose of the experimentation.
+        <br>My responses are constrained by information found within our existing Subscriber FAQs published online right now, along with training documents and content provided by TDD and the NCS leadership team.
+        <br>
+        <br>
+        Ask me questions about the Agent Assistant Bot, how it works and if there's any risk in GenAI.
+        <br>
+        <br>
+        Ask me questions and follow ups about our NCS Contact Centres; what they do, what they are working on, or maybe some Fun Facts
+        <br>
+        <br>
+        <strong>Agent Assistant Prototype:</strong>
+        <!-- Widget JavaScript bundle -->
+<script src="https://cloud.google.com/ai/gen-app-builder/client?hl=en_GB"></script>
+
+<!-- Search widget element is not visible by default -->
+<gen-search-widget
+  configId="f08e2d4c-2b51-4ea5-a748-5011c8654479"
+  triggerId="searchWidgetTrigger">
+</gen-search-widget>
+
+<!-- Element that opens the widget on click. It does not have to be an input -->
+<input placeholder="Search here" id="searchWidgetTrigger" />
+      <br>
+      <br>
+      <button onclick="clearSession()">Clear Session</button>
+        
+        <!-- Load external JavaScript -->
+        <!--<script src="scripts.js"></script>-->
+        <br>
+        <br>
+        
+    </body>
+
+</html>
