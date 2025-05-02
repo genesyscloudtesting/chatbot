@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+    <script>
+	var SCRIPT_URL = "https://script.google.com/a/macros/news.com.au/s/AKfycbyfu8aOzzBqzsDA2ZmKq373WRixVy1AlbZ9Z8IDPk1HjhkiGB3iiVMx-eh5EaeIvdMzdA/exec";
+		$(document).ready(function() {			
+			$.getJSON(SCRIPT_URL+"?callback=?",
+		              function (data) { 
+		                //var email = JSON.stringify(data); 
+						var email = JSON.stringify(data).replace(/\"/g, "");
+						
+						// Create Agent Name from email address
+						var firstName = (email.split('@')[0]).split('.')[0];
+						var formattedFirstName = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+						var lastName = (email.split('@')[0]).split('.')[1];
+						let formattedLastName = lastName.charAt(0).toUpperCase() + lastName.slice(1).toLowerCase();
+						var agentName = formattedFirstName + " " + formattedLastName;
+						
+						// Show the Open Chat Button
+						document.getElementById('openChatBotButton').style.display = 'inline';
+
+						// Enable Genesys chat widget
+						(function (g, e, n, es, ys) {
+						g['_genesysJs'] = e;
+						g[e] = g[e] || function () {
+						  (g[e].q = g[e].q || []).push(arguments)
+						};
+						g[e].t = 1 * new Date();
+						g[e].c = es;
+						ys = document.createElement('script'); ys.async = 1; ys.src = n; ys.charset = 'utf-8'; document.head.appendChild(ys);
+					  })(window, 'Genesys', 'https://apps.mypurecloud.com.au/genesys-bootstrap/genesys.min.js', {
+						environment: 'prod-apse2',
+						deploymentId: 'bb20d07b-83aa-490b-a2f9-391d34dfa96c'
+					  });
+					  
+						// Set agent email and name as participant data
+						Genesys('subscribe', 'Messenger.ready', function () {
+						
+						// Show the Chat Launcher
+						Genesys("command", "Launcher.show");
+
+						Genesys("command", "Database.set", {
+						  messaging: {
+							customAttributes: {
+							  AgentEmail: email,
+							  name: agentName,
+							  AgentName: agentName,
+							}
+						  }
+						});
+			   
+						Genesys(
+							'command',
+							'Messenger.open',
+							{},
+							() => {
+							 /*fulfilled callback*/
+							 console.log('Messenger opened');
+							},
+							(error) => {
+							 /*rejected callback*/
+							 console.log("Couldn't open messenger.", error);
+							}
+						  );
+						});
+
+						Genesys("subscribe", "MessagingService.conversationCleared", function({data}){
+							// Once chat session cleared, disable chat launcher and show text box advising to refresh page
+							document.getElementById('openChatBotButton').style.display = 'none';
+							document.getElementById('clearSessionText').style.display = 'inline';
+							Genesys("command", "Launcher.hide");
+                        });
+					});
+		        });
+					  
+		
+		function openChat() {
+						Genesys("command", "Messenger.open");
+			}
+    </script>
+</head>
+<body>
+	<!-- Open Chat Bot Button -->
+    <div id="openChatBotButton" style="display: none">
+        <button type="button" class="btn btn-primary" style="width: 200px" onclick="openChat()">Open Agent Support Here</button>
+    </div>
+	<br>
+	<br>
+	<!-- Clear session info text -->
+    <div id="clearSessionText" style="display: none;">
+	<textarea rows="10" cols="25" style="border: 3px #F7730E solid; font-size: 38px; font-weight: bold; color: #F7730E">Please note: You have cleared your chat session. Please refresh this browser window or tab if you want to restart the chat bot.</textarea>
+    </div>
+	
+
+</body>
+</html>
