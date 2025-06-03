@@ -316,6 +316,8 @@
                 csvRows[0].push('Comments')
                 csvRows[0].push('AI - Reason for Selection Explanation')
               }
+              csvRows[0].push('Evaluator Comments')
+              csvRows[0].push('Agent Comments')
             }
             // add the data to the row
             csvRows.push([evaluation.agent.name])
@@ -330,6 +332,8 @@
               csvRows[csvRows.length - 1].push(question.comment)
               csvRows[csvRows.length - 1].push(question.aiExplanation)
             }
+            csvRows[csvRows.length - 1].push(evaluation.answers.comments)
+            csvRows[csvRows.length - 1].push(evaluation.answers.agentComments)
           }
           console.log(csvRows)
           await buildTableRows(csvRows)
