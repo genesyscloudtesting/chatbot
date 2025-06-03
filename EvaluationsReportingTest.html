@@ -332,8 +332,8 @@
               csvRows[csvRows.length - 1].push(question.comment)
               csvRows[csvRows.length - 1].push(question.aiExplanation)
             }
-            csvRows[csvRows.length - 1].push(evaluation.answers.comments)
-            csvRows[csvRows.length - 1].push(evaluation.answers.agentComments)
+            csvRows[csvRows.length - 1].push(evaluation.answers?.comments ? evaluation.answers.comments : '')
+            csvRows[csvRows.length - 1].push(evaluation.answers?.agentComments ? evaluation.answers.agentcomments : '')
           }
           console.log(csvRows)
           await buildTableRows(csvRows)
