@@ -95,6 +95,8 @@
           thisMonth()
           getEvaluationForms()
           getGroups()
+          ensureHorizontalScroll()
+          window.addEventListener('resize', ensureHorizontalScroll)
         } catch (err) {
           console.log('Error: ', err)
         }
@@ -166,6 +168,20 @@
         return
       }
 
+      function ensureHorizontalScroll() {
+        const tableLocation = document.getElementById('tableLocation')
+        const table = tableLocation.querySelector('table')
+        if (table) {
+          const tableWidth = table.offsetWidth
+          const containerWidth = tableLocation.offsetWidth
+          if (tableWidth > containerWidth) {
+            tableLocation.style.overflowX = 'auto'
+          } else {
+            tableLocation.style.overflowX = 'visible'
+          }
+        }
+      }
+      
       // dynamic table creation
       async function buildTableRows(rows) {
         for (const row of rows) {
@@ -185,6 +201,9 @@
             table.setAttribute('slot', 'data')
             guxTable.setAttribute('resizable-columns', '')
 
+            // Set a minimum width for the table
+            table.style.minWidth = '150%'
+            
             header.appendChild(headerRow)
             guxTable.appendChild(table)
             table.appendChild(header)
@@ -339,6 +358,7 @@
           }
           console.log(csvRows)
           await buildTableRows(csvRows)
+          ensureHorizontalScroll()
           document.getElementById('spinner').style.display = 'none'
           document.getElementById('download').style.display = 'block'
         } catch (err) {
