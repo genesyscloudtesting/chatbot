@@ -307,14 +307,14 @@
               csvRows.push(['Agent'])
               csvRows[0].push('Evaluator')
               csvRows[0].push('Conversation Date')
-              csvRows[0].push('Release Date')
+              csvRows[0].push('Conversation Link')
               csvRows[0].push('Conversation ID')
               csvRows[0].push('Agent Reviewed')
               csvRows[0].push('Total Score')
               for (const question of questionScores) {
                 csvRows[0].push(question.name)
                 csvRows[0].push('Comments')
-                csvRows[0].push('AI Explanation')
+                csvRows[0].push('AI - Reason for Selection Explanation')
               }
             }
             // add the data to the row
