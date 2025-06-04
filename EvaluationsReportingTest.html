@@ -175,8 +175,8 @@
       
       // download csv
       function buildCsv() {
-        //let csvContent = 'data:text/csv;charset=utf-8,' + csvRows.map((e) => e.join(',')).join('\r\n')
-        let csvContent = generateRobustCSV(csvRows);
+        let csvContent = 'data:text/csv;charset=utf-8,' + csvRows.map((e) => e.join(',')).join('\r\n')
+        //let csvContent = generateRobustCSV(csvRows);
         const encodedUri = encodeURI(csvContent)
         const link = document.createElement('a')
         link.setAttribute('href', encodedUri)
@@ -341,7 +341,7 @@
                   questionGroupId: question.questionGroupId,
                   score: questionScore.score,
                   comment: questionScore?.comments ? questionScore.comments : '',
-                  aiExplanation: questionScore?.aiAnswer?.explanation ? questionScore.aiAnswer.explanation : '',
+                  aiExplanation: questionScore?.aiAnswer?.explanation ? '"' + questionScore.aiAnswer.explanation + '"' : '',
                 }
                 questionScores.push(score)
               }
@@ -366,7 +366,7 @@
               csvRows[0].push('Agent Reviewed')
               csvRows[0].push('Total Score')
               for (const question of questionScores) {
-                csvRows[0].push(question.name)
+                csvRows[0].push('"' + question.name + '"')
                 csvRows[0].push('Comments')
                 csvRows[0].push('AI - Reason for Selection Explanation')
               }
