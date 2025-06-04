@@ -15,20 +15,19 @@
     <script src="https://sdk-cdn.mypurecloud.com/javascript/latest/purecloud-platform-client-v2.min.js"></script>
     <script src="https://sdk-cdn.mypurecloud.com/client-apps/2.6.7/purecloud-client-app-sdk.js"></script>
     <style>
-        #tableContainer {
-        position: relative;
-      }
-    
-      #tableContainer thead {
-        position: sticky;
-        top: 0;
-        background-color: white;
-        z-index: 1;
-      }
+        body {
+            margin: 0;
+            padding: 0;
+            overflow-x: auto;
+        }
+        .content-wrapper {
+            min-width: 1200px; /* Adjust this value based on your content */
+            padding: 20px;
+        }
     </style>
   </head>
   <body onload="start()">
-    <div style="display: inline-flex">
+    <div class="content-wrapper">
       <gux-dropdown filter-type="starts-with" placeholder="UTC-00:00" id="timeZone" style="width: 150px; padding: 8px">
         <gux-listbox aria-label="Time Zone">
           <gux-option value="-12:00">UTC-12:00</gux-option><gux-option value="-11:00">UTC-11:00</gux-option><gux-option value="-10:00">UTC-10:00</gux-option
@@ -107,8 +106,6 @@
           thisMonth()
           getEvaluationForms()
           getGroups()
-          ensureTableScroll()
-          window.addEventListener('resize', ensureTableScroll)
         } catch (err) {
           console.log('Error: ', err)
         }
@@ -181,17 +178,15 @@
       }
 
       function ensureHorizontalScroll() {
-        const tableLocation = document.getElementById('tableLocation')
-        const table = tableLocation.querySelector('table')
-        if (table) {
-          const tableWidth = table.offsetWidth
-          const containerWidth = tableLocation.offsetWidth
-          if (tableWidth > containerWidth) {
-            tableLocation.style.overflowX = 'auto'
+          const contentWrapper = document.querySelector('.content-wrapper');
+          const windowWidth = window.innerWidth;
+          const contentWidth = contentWrapper.scrollWidth;
+          
+          if (contentWidth > windowWidth) {
+              document.body.style.overflowX = 'auto';
           } else {
-            tableLocation.style.overflowX = 'visible'
+              document.body.style.overflowX = 'hidden';
           }
-        }
       }
 
       function ensureTableScroll() {
@@ -210,61 +205,52 @@
       
       // dynamic table creation
       async function buildTableRows(rows) {
-        let top = document.getElementById('tableLocation')
-        top.innerHTML = '' // Clear previous content
+          for (const row of rows) {
+              let tableBody = document.getElementById('tableBody')
+              if (!tableBody) {
+                  // create the top table row if its not already there
+                  console.log('Creating table')
+                  let top = document.getElementById('tableLocation')
+                  let guxTable = document.createElement('gux-table')
+                  let table = document.createElement('table')
+                  let header = document.createElement('thead')
+                  let headerRow = document.createElement('tr')
+                  let tbody = document.createElement('tbody')
       
-        let tableContainer = document.createElement('div')
-        tableContainer.id = 'tableContainer'
-        tableContainer.style.maxHeight = '400px' // Set a max height for vertical scroll
-        tableContainer.style.overflowY = 'auto' // Enable vertical scroll
-        tableContainer.style.overflowX = 'auto' // Enable horizontal scroll
-        tableContainer.style.width = '100%' // Full width of parent
+                  headerRow.setAttribute('data-row-id', 'head')
+                  tbody.setAttribute('id', 'tableBody')
+                  table.setAttribute('slot', 'data')
+                  guxTable.setAttribute('resizable-columns', '')
       
-        let guxTable = document.createElement('gux-table')
-        let table = document.createElement('table')
-        let header = document.createElement('thead')
-        let headerRow = document.createElement('tr')
-        let tbody = document.createElement('tbody')
+                  header.appendChild(headerRow)
+                  guxTable.appendChild(table)
+                  table.appendChild(header)
+                  table.appendChild(tbody)
       
-        headerRow.setAttribute('data-row-id', 'head')
-        tbody.setAttribute('id', 'tableBody')
-        table.setAttribute('slot', 'data')
-        guxTable.setAttribute('resizable-columns', '')
-      
-        // Set a minimum width for the table
-        table.style.minWidth = '100%'
-      
-        header.appendChild(headerRow)
-        guxTable.appendChild(table)
-        table.appendChild(header)
-        table.appendChild(tbody)
-      
-        // create column names on first row
-        for (const item of rows[0]) {
-          let th = document.createElement('th')
-          th.setAttribute('data-column-name', item)
-          th.style.textWrap = 'auto'
-          th.innerHTML = item
-          th.title = item
-          headerRow.appendChild(th)
-        }
-      
-        tableContainer.appendChild(guxTable)
-        top.appendChild(tableContainer)
-      
-        // Add data rows
-        for (let i = 1; i < rows.length; i++) {
-          let tr = document.createElement('tr')
-          for (const item of rows[i]) {
-            let td = document.createElement('td')
-            td.style.textWrap = 'auto'
-            td.innerHTML = item
-            tr.appendChild(td)
+                  // create column names on first row
+                  for (const item of row) {
+                      let th = document.createElement('th')
+                      th.setAttribute('data-column-name', item)
+                      th.style.textWrap = 'auto'
+                      th.innerHTML = item
+                      th.title = item
+                      headerRow.appendChild(th)
+                  }
+                  top.appendChild(guxTable)
+                  continue
+              }
+              if (tableBody) {
+                  // add data to the row
+                  let tr = document.createElement('tr')
+                  for (const item of row) {
+                      let column = document.createElement('td')
+                      column.style.textWrap = 'auto'
+                      column.innerHTML = item
+                      tr.appendChild(column)
+                  }
+                  tableBody.appendChild(tr)
+              }
           }
-          tbody.appendChild(tr)
-        }
-      
-        ensureTableScroll()
       }
 
       // used to update the versions dropdown
@@ -390,7 +376,7 @@
           }
           console.log(csvRows)
           await buildTableRows(csvRows)
-          ensureTableScroll()
+          ensureHorizontalScroll()
           document.getElementById('spinner').style.display = 'none'
           document.getElementById('download').style.display = 'block'
         } catch (err) {
