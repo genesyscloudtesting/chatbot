@@ -152,9 +152,31 @@
         document.getElementById('timeZone').value = offsetString
       }
 
+      function generateRobustCSV(rows) {
+        // Helper function to escape and quote a field if necessary
+        function escapeField(field) {
+          if (field === null || field === undefined) {
+            return '';
+          }
+          field = field.toString();
+          if (field.includes('"') || field.includes(',') || field.includes('\n') || field.includes('\r')) {
+            // Escape double quotes by doubling them and wrap the field in quotes
+            return '"' + field.replace(/"/g, '""') + '"';
+          }
+          return field;
+        }
+
+        // Convert rows to CSV
+        const csvContent = rows.map(row => row.map(escapeField).join(',')).join('\r\n');
+      
+        // Prepend the data URI scheme
+        return 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvContent);
+      }
+      
       // download csv
       function buildCsv() {
-        let csvContent = 'data:text/csv;charset=utf-8,' + csvRows.map((e) => e.join(',')).join('\r\n')
+        //let csvContent = 'data:text/csv;charset=utf-8,' + csvRows.map((e) => e.join(',')).join('\r\n')
+        let csvContent = generateRobustCSV(csvRows);
         const encodedUri = encodeURI(csvContent)
         const link = document.createElement('a')
         link.setAttribute('href', encodedUri)
@@ -185,18 +207,6 @@
         return
       }
 
-      function ensureHorizontalScroll() {
-          const contentWrapper = document.querySelector('.content-wrapper');
-          const windowWidth = window.innerWidth;
-          const contentWidth = contentWrapper.scrollWidth;
-          
-          if (contentWidth > windowWidth) {
-              document.body.style.overflowX = 'auto';
-          } else {
-              document.body.style.overflowX = 'hidden';
-          }
-      }
-
       function ensurePageScroll() {
           const contentWrapper = document.querySelector('.content-wrapper');
           const windowWidth = window.innerWidth;
@@ -206,20 +216,6 @@
           
           document.body.style.overflowX = contentWidth > windowWidth ? 'scroll' : 'hidden';
           document.body.style.overflowY = contentHeight > windowHeight ? 'scroll' : 'hidden';
-      }
-
-      function ensureTableScroll() {
-        const tableContainer = document.getElementById('tableContainer')
-        const table = tableContainer.querySelector('table')
-        if (table) {
-          const tableWidth = table.offsetWidth
-          const tableHeight = table.offsetHeight
-          const containerWidth = tableContainer.clientWidth
-          const containerHeight = tableContainer.clientHeight
-      
-          tableContainer.style.overflowX = tableWidth > containerWidth ? 'auto' : 'hidden'
-          tableContainer.style.overflowY = tableHeight > containerHeight ? 'auto' : 'hidden'
-        }
       }
       
       // dynamic table creation
