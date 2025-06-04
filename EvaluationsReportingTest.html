@@ -28,47 +28,49 @@
   </head>
   <body onload="start()">
     <div class="content-wrapper">
-      <gux-dropdown filter-type="starts-with" placeholder="UTC-00:00" id="timeZone" style="width: 150px; padding: 8px">
-        <gux-listbox aria-label="Time Zone">
-          <gux-option value="-12:00">UTC-12:00</gux-option><gux-option value="-11:00">UTC-11:00</gux-option><gux-option value="-10:00">UTC-10:00</gux-option
-          ><gux-option value="-09:30">UTC-09:30</gux-option><gux-option value="-09:00">UTC-09:00</gux-option><gux-option value="-08:00">UTC-08:00</gux-option
-          ><gux-option value="-07:00">UTC-07:00</gux-option><gux-option value="-06:00">UTC-06:00</gux-option><gux-option value="-05:00">UTC-05:00</gux-option
-          ><gux-option value="-04:00">UTC-04:00</gux-option><gux-option value="-03:30">UTC-03:30</gux-option><gux-option value="-03:00">UTC-03:00</gux-option
-          ><gux-option value="-02:00">UTC-02:00</gux-option><gux-option value="-01:00">UTC-01:00</gux-option><gux-option value="-00:00">UTC+00:00</gux-option
-          ><gux-option value="+00:00">UTC+00:00</gux-option><gux-option value="+01:00">UTC+01:00</gux-option><gux-option value="+02:00">UTC+02:00</gux-option
-          ><gux-option value="+03:00">UTC+03:00</gux-option><gux-option value="+03:30">UTC+03:30</gux-option><gux-option value="+04:00">UTC+04:00</gux-option
-          ><gux-option value="+04:30">UTC+04:30</gux-option><gux-option value="+05:00">UTC+05:00</gux-option><gux-option value="+05:30">UTC+05:30</gux-option
-          ><gux-option value="+05:45">UTC+05:45</gux-option><gux-option value="+06:00">UTC+06:00</gux-option><gux-option value="+06:30">UTC+06:30</gux-option
-          ><gux-option value="+07:00">UTC+07:00</gux-option><gux-option value="+08:00">UTC+08:00</gux-option><gux-option value="+08:45">UTC+08:45</gux-option
-          ><gux-option value="+09:00">UTC+09:00</gux-option><gux-option value="+09:30">UTC+09:30</gux-option><gux-option value="+10:00">UTC+10:00</gux-option
-          ><gux-option value="+10:30">UTC+10:30</gux-option><gux-option value="+11:00">UTC+11:00</gux-option><gux-option value="+12:00">UTC+12:00</gux-option
-          ><gux-option value="+12:45">UTC+12:45</gux-option><gux-option value="+13:00">UTC+13:00</gux-option><gux-option value="+14:00">UTC+14:00</gux-option>
-        </gux-listbox>
-      </gux-dropdown>
-      <gux-datepicker id="datepicker" style="padding: 8px" mode="range" value="" number-of-months="2"></gux-datepicker>
-      <gux-button style="padding: 8px" accent="secondary" onclick="thisMonth()">This Month</gux-button>
-      <gux-button style="padding: 8px" accent="secondary" onclick="last30days()">Last 30 Days</gux-button>
-      <gux-button style="padding: 8px" accent="primary" onclick="getData()">Search</gux-button>
-      <gux-button style="padding: 8px" accent="secondary" onclick="clearData()">Clear</gux-button>
-      <gux-button id="download" style="padding: 8px; display: none" accent="ghost" onclick="buildCsv()">Download</gux-button>
+      <div style="display: inline-flex">
+        <gux-dropdown filter-type="starts-with" placeholder="UTC-00:00" id="timeZone" style="width: 150px; padding: 8px">
+          <gux-listbox aria-label="Time Zone">
+            <gux-option value="-12:00">UTC-12:00</gux-option><gux-option value="-11:00">UTC-11:00</gux-option><gux-option value="-10:00">UTC-10:00</gux-option
+            ><gux-option value="-09:30">UTC-09:30</gux-option><gux-option value="-09:00">UTC-09:00</gux-option><gux-option value="-08:00">UTC-08:00</gux-option
+            ><gux-option value="-07:00">UTC-07:00</gux-option><gux-option value="-06:00">UTC-06:00</gux-option><gux-option value="-05:00">UTC-05:00</gux-option
+            ><gux-option value="-04:00">UTC-04:00</gux-option><gux-option value="-03:30">UTC-03:30</gux-option><gux-option value="-03:00">UTC-03:00</gux-option
+            ><gux-option value="-02:00">UTC-02:00</gux-option><gux-option value="-01:00">UTC-01:00</gux-option><gux-option value="-00:00">UTC+00:00</gux-option
+            ><gux-option value="+00:00">UTC+00:00</gux-option><gux-option value="+01:00">UTC+01:00</gux-option><gux-option value="+02:00">UTC+02:00</gux-option
+            ><gux-option value="+03:00">UTC+03:00</gux-option><gux-option value="+03:30">UTC+03:30</gux-option><gux-option value="+04:00">UTC+04:00</gux-option
+            ><gux-option value="+04:30">UTC+04:30</gux-option><gux-option value="+05:00">UTC+05:00</gux-option><gux-option value="+05:30">UTC+05:30</gux-option
+            ><gux-option value="+05:45">UTC+05:45</gux-option><gux-option value="+06:00">UTC+06:00</gux-option><gux-option value="+06:30">UTC+06:30</gux-option
+            ><gux-option value="+07:00">UTC+07:00</gux-option><gux-option value="+08:00">UTC+08:00</gux-option><gux-option value="+08:45">UTC+08:45</gux-option
+            ><gux-option value="+09:00">UTC+09:00</gux-option><gux-option value="+09:30">UTC+09:30</gux-option><gux-option value="+10:00">UTC+10:00</gux-option
+            ><gux-option value="+10:30">UTC+10:30</gux-option><gux-option value="+11:00">UTC+11:00</gux-option><gux-option value="+12:00">UTC+12:00</gux-option
+            ><gux-option value="+12:45">UTC+12:45</gux-option><gux-option value="+13:00">UTC+13:00</gux-option><gux-option value="+14:00">UTC+14:00</gux-option>
+          </gux-listbox>
+        </gux-dropdown>
+        <gux-datepicker id="datepicker" style="padding: 8px" mode="range" value="" number-of-months="2"></gux-datepicker>
+        <gux-button style="padding: 8px" accent="secondary" onclick="thisMonth()">This Month</gux-button>
+        <gux-button style="padding: 8px" accent="secondary" onclick="last30days()">Last 30 Days</gux-button>
+        <gux-button style="padding: 8px" accent="primary" onclick="getData()">Search</gux-button>
+        <gux-button style="padding: 8px" accent="secondary" onclick="clearData()">Clear</gux-button>
+        <gux-button id="download" style="padding: 8px; display: none" accent="ghost" onclick="buildCsv()">Download</gux-button>
+      </div>
+      <div></div>
+      <div style="display: inline-flex">
+        <gux-dropdown filter-type="starts-with" placeholder="Select Form" id="formId" style="display: block; width: 250px; padding: 8px">
+          <gux-listbox id="formIdList" aria-label="Form Name"> </gux-listbox>
+        </gux-dropdown>
+        <gux-dropdown filter-type="starts-with" placeholder="Select Version (Default latest)" id="formIdVersion" style="display: block; width: 250px; padding: 8px">
+          <gux-listbox id="formIdListVersions" aria-label="Form Version"> </gux-listbox>
+        </gux-dropdown>
+        <gux-dropdown filter-type="starts-with" placeholder="Select Group" id="groupId" style="display: block; width: 250px; padding: 8px">
+          <gux-listbox id="groupIdList" aria-label="Group Name"> </gux-listbox>
+        </gux-dropdown>
+      </div>
+      <div id="spinner" style="justify-self: center; padding: 8px; display: none">
+        <gux-radial-loading id="loading" class="loading" screenreader-text="Loading..."></gux-radial-loading>
+      </div>
+      //<div id="tableLocation" style="padding: 8px"></div>
+      <div id="tableLocation" style="padding: 8px; overflow-x: auto"></div>
     </div>
-    <div></div>
-    <div style="display: inline-flex">
-      <gux-dropdown filter-type="starts-with" placeholder="Select Form" id="formId" style="display: block; width: 250px; padding: 8px">
-        <gux-listbox id="formIdList" aria-label="Form Name"> </gux-listbox>
-      </gux-dropdown>
-      <gux-dropdown filter-type="starts-with" placeholder="Select Version (Default latest)" id="formIdVersion" style="display: block; width: 250px; padding: 8px">
-        <gux-listbox id="formIdListVersions" aria-label="Form Version"> </gux-listbox>
-      </gux-dropdown>
-      <gux-dropdown filter-type="starts-with" placeholder="Select Group" id="groupId" style="display: block; width: 250px; padding: 8px">
-        <gux-listbox id="groupIdList" aria-label="Group Name"> </gux-listbox>
-      </gux-dropdown>
-    </div>
-    <div id="spinner" style="justify-self: center; padding: 8px; display: none">
-      <gux-radial-loading id="loading" class="loading" screenreader-text="Loading..."></gux-radial-loading>
-    </div>
-    //<div id="tableLocation" style="padding: 8px"></div>
-    <div id="tableLocation" style="padding: 8px; overflow-x: auto"></div>
     
     <script>
       'use strict' //Enables strict mode is JavaScript
