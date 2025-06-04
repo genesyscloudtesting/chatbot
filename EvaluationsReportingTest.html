@@ -15,14 +15,19 @@
     <script src="https://sdk-cdn.mypurecloud.com/javascript/latest/purecloud-platform-client-v2.min.js"></script>
     <script src="https://sdk-cdn.mypurecloud.com/client-apps/2.6.7/purecloud-client-app-sdk.js"></script>
     <style>
-        body {
+        html, body {
             margin: 0;
             padding: 0;
-            overflow-x: auto;
+            height: 100%;
+            overflow: auto;
         }
         .content-wrapper {
             min-width: 1200px; /* Adjust this value based on your content */
+            min-height: 100%;
             padding: 20px;
+        }
+        #tableLocation {
+            margin-top: 20px;
         }
     </style>
   </head>
@@ -108,6 +113,7 @@
           thisMonth()
           getEvaluationForms()
           getGroups()
+          ensurePageScroll()
         } catch (err) {
           console.log('Error: ', err)
         }
@@ -189,6 +195,17 @@
           } else {
               document.body.style.overflowX = 'hidden';
           }
+      }
+
+      function ensurePageScroll() {
+          const contentWrapper = document.querySelector('.content-wrapper');
+          const windowWidth = window.innerWidth;
+          const windowHeight = window.innerHeight;
+          const contentWidth = contentWrapper.scrollWidth;
+          const contentHeight = contentWrapper.scrollHeight;
+          
+          document.body.style.overflowX = contentWidth > windowWidth ? 'scroll' : 'hidden';
+          document.body.style.overflowY = contentHeight > windowHeight ? 'scroll' : 'hidden';
       }
 
       function ensureTableScroll() {
@@ -378,7 +395,7 @@
           }
           console.log(csvRows)
           await buildTableRows(csvRows)
-          ensureHorizontalScroll()
+          ensurePageScroll()
           document.getElementById('spinner').style.display = 'none'
           document.getElementById('download').style.display = 'block'
         } catch (err) {
