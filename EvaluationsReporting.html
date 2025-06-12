@@ -365,6 +365,7 @@
               csvRows[0].push('Conversation Date')
               csvRows[0].push('Conversation Link')
               csvRows[0].push('Conversation ID')
+              csvRows[0].push('Evaluation ID')
               csvRows[0].push('Agent Reviewed')
               csvRows[0].push('Total Score')
               for (const question of questionScores) {
@@ -381,6 +382,7 @@
             csvRows[csvRows.length - 1].push(new Date(evaluation.conversationDate).toLocaleString().replace(',', ' '))
             csvRows[csvRows.length - 1].push(`<gux-button onclick="openConversationId('${conv.group.conversationId}')">Open</gux-button>`)
             csvRows[csvRows.length - 1].push(conv.group.conversationId)
+            csvRows[csvRows.length - 1].push(conv.group.evaluationId)
             csvRows[csvRows.length - 1].push(evaluation.agentHasRead)
             csvRows[csvRows.length - 1].push(evaluation.answers.totalScore)
             for (const question of questionScores) {
