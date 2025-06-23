@@ -388,7 +388,6 @@
             csvRows[csvRows.length - 1].push(evaluation.agentHasRead)
             csvRows[csvRows.length - 1].push(evaluation.answers.totalScore)
             for (const question of questionScores) {
-              console.log(question.markedNA)
               if (question.markedNA === true) {
                 csvRows[csvRows.length - 1].push('N/A')
               }
