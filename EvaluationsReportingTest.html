@@ -344,6 +344,8 @@
                   score: questionScore.score,
                   comment: questionScore?.comments ? questionScore.comments : '',
                   aiExplanation: questionScore?.aiAnswer?.explanation ? questionScore.aiAnswer.explanation : '',
+                  aiFailureType: questionScore?.aiAnswer?.failureType ? questionScore.aiAnswer.failureType : '',
+                  markedNA: questionScore.markedNA
                 }
                 questionScores.push(score)
               }
@@ -370,8 +372,8 @@
               csvRows[0].push('Total Score')
               for (const question of questionScores) {
                 csvRows[0].push(question.name)
-                csvRows[0].push('Comments')
                 csvRows[0].push('AI - Reason for Selection Explanation')
+                csvRows[0].push('Comments')
               }
               csvRows[0].push('Evaluator Comments')
               csvRows[0].push('Agent Comments')
@@ -386,9 +388,18 @@
             csvRows[csvRows.length - 1].push(evaluation.agentHasRead)
             csvRows[csvRows.length - 1].push(evaluation.answers.totalScore)
             for (const question of questionScores) {
-              csvRows[csvRows.length - 1].push(question.score)
-              csvRows[csvRows.length - 1].push(question.comment)
+              if (question.markedNA === true) {
+                csvRows[csvRows.length - 1].push('N/A')
+              }
+              else {
+                csvRows[csvRows.length - 1].push(question.score)
+              }
+              if (question.aiExplanation === '' && question.aiFailureType !== '') {
+                csvRows[csvRows.length - 1].push('Genesys AI could not accurately answer this question')
+              } else {
               csvRows[csvRows.length - 1].push(question.aiExplanation)
+              }
+              csvRows[csvRows.length - 1].push(question.comment)
             }
             csvRows[csvRows.length - 1].push(evaluation.answers?.comments ? evaluation.answers.comments : '')
             csvRows[csvRows.length - 1].push(evaluation.answers?.agentComments ? evaluation.answers.agentComments : '')
