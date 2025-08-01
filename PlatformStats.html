@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<!-- Created as an example by https://github.com/mcphee11 Version 3.0 -->
+<html>
+  <head>
+    <meta name="robots" content="noindex" />
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>Platform Report</title>
+    <meta name="Template" content="" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Genesys CSS https://spark.genesys.com/ In PROD set a version https://www.jsdelivr.com/package/npm/genesys-spark-components -->
+    <link href="https://dhqbrvplips7x.cloudfront.net/common-ui-docs/genesys-webcomponents/3.8.1-178/genesys-webcomponents/genesys-webcomponents.css" rel="stylesheet" />
+    <script type="module" src="https://dhqbrvplips7x.cloudfront.net/common-ui-docs/genesys-webcomponents/3.8.1-178/genesys-webcomponents/genesys-webcomponents.esm.js"></script>
+    <!-- Genesys SDK info https://developer.genesys.cloud/  In PROD set a version -->
+    <script src="https://sdk-cdn.mypurecloud.com/javascript/latest/purecloud-platform-client-v2.min.js"></script>
+  </head>
+
+  <body onload="start()">
+    <div id="topBar">
+      <div style="display: inline-flex">
+        <gux-dropdown filter-type="starts-with" placeholder="UTC-00:00" id="timeZone" style="width: 150px; padding: 9px">
+          <gux-listbox aria-label="Time Zone">
+            <gux-option value="-12:00">UTC-12:00</gux-option><gux-option value="-11:00">UTC-11:00</gux-option><gux-option value="-10:00">UTC-10:00</gux-option
+            ><gux-option value="-09:30">UTC-09:30</gux-option><gux-option value="-09:00">UTC-09:00</gux-option><gux-option value="-08:00">UTC-08:00</gux-option
+            ><gux-option value="-07:00">UTC-07:00</gux-option><gux-option value="-06:00">UTC-06:00</gux-option><gux-option value="-05:00">UTC-05:00</gux-option
+            ><gux-option value="-04:00">UTC-04:00</gux-option><gux-option value="-03:30">UTC-03:30</gux-option><gux-option value="-03:00">UTC-03:00</gux-option
+            ><gux-option value="-02:00">UTC-02:00</gux-option><gux-option value="-01:00">UTC-01:00</gux-option><gux-option value="-00:00">UTC+00:00</gux-option
+            ><gux-option value="+00:00">UTC+00:00</gux-option><gux-option value="+01:00">UTC+01:00</gux-option><gux-option value="+02:00">UTC+02:00</gux-option
+            ><gux-option value="+03:00">UTC+03:00</gux-option><gux-option value="+03:30">UTC+03:30</gux-option><gux-option value="+04:00">UTC+04:00</gux-option
+            ><gux-option value="+04:30">UTC+04:30</gux-option><gux-option value="+05:00">UTC+05:00</gux-option><gux-option value="+05:30">UTC+05:30</gux-option
+            ><gux-option value="+05:45">UTC+05:45</gux-option><gux-option value="+06:00">UTC+06:00</gux-option><gux-option value="+06:30">UTC+06:30</gux-option
+            ><gux-option value="+07:00">UTC+07:00</gux-option><gux-option value="+08:00">UTC+08:00</gux-option><gux-option value="+08:45">UTC+08:45</gux-option
+            ><gux-option value="+09:00">UTC+09:00</gux-option><gux-option value="+09:30">UTC+09:30</gux-option><gux-option value="+10:00">UTC+10:00</gux-option
+            ><gux-option value="+10:30">UTC+10:30</gux-option><gux-option value="+11:00">UTC+11:00</gux-option><gux-option value="+12:00">UTC+12:00</gux-option
+            ><gux-option value="+12:45">UTC+12:45</gux-option><gux-option value="+13:00">UTC+13:00</gux-option><gux-option value="+14:00">UTC+14:00</gux-option>
+          </gux-listbox>
+        </gux-dropdown>
+        <gux-datepicker id="datepicker" style="padding: 5px" mode="range" value="" number-of-months="2"></gux-datepicker>
+        <gux-button style="padding: 8px" accent="secondary" onclick="thisMonth()">This Month</gux-button>
+        <gux-button style="padding: 8px" accent="secondary" onclick="last30days()">Last 30 Days</gux-button>
+        <gux-button style="padding: 8px" accent="primary" onclick="getData()">Search</gux-button>
+      </div>
+    </div>
+
+    <div id="main" style="display: inline-flex; width: 100%; justify-content: space-evenly">
+      <div id="left">
+        <div id="ram" style="justify-items: center">
+          <h2 id="ramLabel">Edges Right NOW</h2>
+        </div>
+        <div id="mos" style="justify-items: center">
+          <h2 id="mosLabel"></h2>
+        </div>
+      </div>
+      <div id="right">
+        <h2>Platform Services: Asia Pacific (Sydney)</h2>
+        <gux-table-beta compact>
+          <table slot="data">
+            <thead>
+              <tr>
+                <th>Service</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="tableBodyStatus"></tbody>
+          </table>
+        </gux-table-beta>
+      </div>
+    </div>
+    <script>
+      'use strict' //Enables strict mode is JavaScript
+      let url = new URL(document.location.href)
+      let gc_region = url.searchParams.get('gc_region')
+      let gc_clientId = url.searchParams.get('gc_clientId')
+      let gc_redirectUrl = url.searchParams.get('gc_redirectUrl')
+
+      //Getting and setting the GC details from dynamic URL and session storage
+      gc_region ? sessionStorage.setItem('gc_region', gc_region) : (gc_region = sessionStorage.getItem('gc_region'))
+      gc_clientId ? sessionStorage.setItem('gc_clientId', gc_clientId) : (gc_clientId = sessionStorage.getItem('gc_clientId'))
+      gc_redirectUrl ? sessionStorage.setItem('gc_redirectUrl', gc_redirectUrl) : (gc_redirectUrl = sessionStorage.getItem('gc_redirectUrl'))
+
+      let platformClient = require('platformClient')
+      const client = platformClient.ApiClient.instance
+      const uapi = new platformClient.UsersApi()
+      const capi = new platformClient.ConversationsApi()
+      const eapi = new platformClient.TelephonyProvidersEdgeApi()
+
+      async function start() {
+        try {
+          client.setEnvironment(gc_region)
+          client.setPersistSettings(true, '_mm_')
+
+          console.log('%cLogging in to Genesys Cloud', 'color: green')
+          await client.loginPKCEGrant(gc_clientId, gc_redirectUrl, {})
+
+          //GET Current UserId
+          let user = await uapi.getUsersMe({})
+          console.log(user)
+
+          //Enter in starting code.
+          getUTCOffset()
+          getStatus()
+          thisMonth()
+          getData()
+          getEdgeMetrics()
+        } catch (err) {
+          console.log('Error: ', err)
+        }
+      } //End of start() function
+
+      function last30days() {
+        let today = new Date()
+        let amonthago = new Date()
+        amonthago.setMonth(amonthago.getMonth() - 1)
+        // prettier-ignore
+        document.getElementById('datepicker').value = `${amonthago.getFullYear()}-${String(amonthago.getMonth() + 1).padStart(2, '0')}-${String(amonthago.getDate()).padStart(2, '0')}/${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+      }
+
+      function thisMonth() {
+        let today = new Date()
+        document.getElementById('datepicker').value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01/${today.getFullYear()}-${String(today.getMonth() + 1).padStart(
+          2,
+          '0'
+        )}-${String(today.getDate()).padStart(2, '0')}`
+      }
+
+      async function getData() {
+        let values = []
+        let pageNumber = 1
+        try {
+          const conversations = await getConversations(pageNumber)
+          console.log('Conversations: ', conversations)
+          if (conversations.totalHits > 100) {
+            while (pageNumber < Math.ceil(conversations.totalHits / 100)) {
+              pageNumber++
+              const nextConversations = await getConversations(pageNumber)
+              conversations.conversations = conversations.conversations.concat(nextConversations.conversations)
+            }
+          }
+
+          for (const conv of conversations.conversations) {
+            let mos = Math.round(conv.mediaStatsMinConversationMos * 10) / 10
+            let existing = values.find((v) => v.MOS === mos)
+            if (existing) {
+              existing.interactions += 1
+            } else {
+              values.push({ MOS: mos, interactions: 1, category: mos })
+            }
+          }
+          setMOS({ values: values })
+        } catch (err) {
+          console.log('Error: ', err)
+        }
+      }
+
+      async function getConversations(pageNumber) {
+        let conversations = await capi.postAnalyticsConversationsDetailsQuery({
+          interval: `${document.getElementById('datepicker').value.split('/')[0]}T00:00:00${document.getElementById('timeZone').value}/${
+            document.getElementById('datepicker').value.split('/')[1]
+          }T23:59:59${document.getElementById('timeZone').value}`,
+          paging: {
+            pageSize: 100,
+            pageNumber: pageNumber,
+          },
+          conversationFilters: [
+            {
+              type: 'and',
+              predicates: [
+                {
+                  type: 'dimension',
+                  operator: 'exists',
+                  dimension: 'mediaStatsMinConversationMos',
+                },
+              ],
+            },
+          ],
+          orderBy: 'conversationStart',
+        })
+        return conversations
+      }
+
+      async function getEdgeMetrics() {
+        let edges = await eapi.getTelephonyProvidersEdges()
+        console.log('edges', edges)
+        let edgeIds = edges.entities.map((edge) => edge.id)
+        let edgeMetrics = await eapi.getTelephonyProvidersEdgesMetrics(edgeIds)
+        console.log('edgeMetrics', edgeMetrics)
+        for (const edge of edgeMetrics) {
+          // RAM
+          let values = []
+          values.push({
+            category: 'Edge',
+            value: 100 - (edge.memory[0].availableBytes / edgeMetrics[0].memory[0].totalBytes) * 100,
+          })
+          setRAM({ values: values }, '% RAM Used')
+          // CPU
+          let values1 = []
+          values1.push({
+            category: 'Edge',
+            value: edge.processors[0].activeTimePct,
+          })
+          setRAM({ values: values1 }, 'CPU Active %')
+          // LAN
+          let values2 = []
+          values2.push({
+            category: 'Edge',
+            value: edge.networks[0].utilizationPct,
+          })
+          setRAM({ values: values2 }, 'LAN util %')
+
+          let div = document.getElementById('ram')
+          let spacer = document.createElement('div')
+          div.appendChild(spacer)
+        }
+      }
+
+      function setRAM(chartData, text) {
+        console.log('chartData', chartData)
+
+        const location = document.getElementById('ram')
+        let ram = document.createElement('gux-chart-donut-beta')
+        let percentage = Math.round(chartData.values[0].value * 10) / 10
+        ram.setAttribute('id', 'chartRAM')
+        ram.setAttribute('show-tooltip', 'false')
+        ram.setAttribute('outer-radius', '80')
+        ram.setAttribute('inner-radius', '68')
+        ram.setAttribute('gauge', 'true')
+        ram.setAttribute('legend-x', '300')
+        ram.setAttribute('legend-y', '0')
+        ram.setAttribute('legend-font-size', '12')
+        ram.setAttribute('legend-symbol-size', '150')
+        ram.setAttribute('center-text', `${percentage}%`)
+        ram.setAttribute('center-sub-text', text)
+        ram.chartData = chartData
+
+        location.appendChild(ram)
+      }
+
+      function setMOS(chartData) {
+        console.log('chartData', chartData)
+        const location = document.getElementById('mos')
+        const locationLabel = document.getElementById('mosLabel')
+        if (document.getElementById('chartMOS')) {
+          location.removeChild(document.getElementById('chartMOS'))
+        }
+        let mos = document.createElement('gux-chart-column-beta')
+        mos.setAttribute('id', 'chartMOS')
+        mos.setAttribute('x-field-name', 'category')
+        mos.setAttribute('y-field-name', 'interactions')
+        mos.chartData = chartData
+
+        location.appendChild(mos)
+        locationLabel.innerText = `MOS Total Interactions: ${chartData.values.reduce((acc, curr) => acc + curr.interactions, 0)}`
+        console.log('added chart')
+      }
+
+      function getUTCOffset() {
+        const now = new Date()
+        const offsetMinutes = now.getTimezoneOffset()
+        const offsetHours = -offsetMinutes / 60 // Invert for standard UTC offset representation
+
+        let offsetString = ''
+        if (offsetHours === 0) {
+          offsetString = '+00:00'
+        } else {
+          const sign = offsetHours > 0 ? '+' : '-'
+          const absHours = Math.abs(Math.floor(offsetHours))
+          const minutes = Math.abs(Math.floor((offsetHours - absHours) * 60))
+          const hoursString = absHours.toString().padStart(2, '0')
+          const minutesString = minutes.toString().padStart(2, '0')
+
+          offsetString = `${sign}${hoursString}:${minutesString}`
+        }
+        document.getElementById('timeZone').value = offsetString
+      }
+
+      async function getStatus() {
+        let status = await fetch('https://status.mypurecloud.com/api/v2/components.json')
+        let response = await status.json()
+        console.log('status', response)
+        let table = document.getElementById('tableBodyStatus')
+
+        let regionName = ''
+        gc_region === 'sae1.pure.cloud' ? (regionName = 'Americas (Sao Paulo)') : null
+        gc_region === 'mypurecloud.com' ? (regionName = 'Americas (US East)') : null
+        gc_region === 'usw2.pure.cloud' ? (regionName = 'Americas (US West)') : null
+        gc_region === 'cac1.pure.cloud' ? (regionName = 'Americas (Canada)') : null
+        gc_region === 'use2.us-gov-pure.cloud' ? (regionName = 'FedRAMP') : null
+
+        gc_region === 'mypurecloud.com.au' ? (regionName = 'Asia Pacific (Sydney)') : null
+        gc_region === 'aps1.pure.cloud' ? (regionName = 'Asia Pacific (Mumbai)') : null
+        gc_region === 'mypurecloud.jp' ? (regionName = 'Asia Pacific (Tokyo)') : null
+        gc_region === 'apne2.pure.cloud' ? (regionName = 'Asia Pacific (Seoul)') : null
+        gc_region === 'apne3.pure.cloud' ? (regionName = 'Asia Pacific (Osaka)') : null
+
+        gc_region === 'mypurecloud.ie' ? (regionName = 'EMEA (Dublin)') : null
+        gc_region === 'mypurecloud.de' ? (regionName = 'EMEA (Frankfurt)') : null
+        gc_region === 'euw2.pure.cloud' ? (regionName = 'EMEA (London)') : null
+        gc_region === 'mec1.pure.cloud' ? (regionName = 'EMEA (UAE)') : null
+        gc_region === 'euc2.pure.cloud' ? (regionName = 'EMEA (Zurich)') : null
+
+        for (const component of response.components) {
+          if (component.name === regionName) {
+            // prettier-ignore
+            let name = response.components.slice().find(type => type.id === component.group_id)
+            let row = document.createElement('tr')
+            let cell1 = document.createElement('td')
+            let cell2 = document.createElement('td')
+            cell1.innerText = name.name
+            cell2.innerText = component.status
+            if (component.status === 'operational') {
+              cell2.style.color = 'white'
+              cell2.style.fontWeight = 'bold'
+              cell2.style.backgroundColor = 'green'
+              cell2.style.textAlign = 'center'
+            }
+            row.appendChild(cell1)
+            row.appendChild(cell2)
+            table.appendChild(row)
+          }
+        }
+      }
+    </script>
+  </body>
+</html>
