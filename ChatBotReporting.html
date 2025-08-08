@@ -364,7 +364,7 @@
             'interval': `${document.getElementById('datepicker').value.split('/')[0]}T00:00:00${document.getElementById('timeZone').value}/${document.getElementById('datepicker').value.split('/')[1]}T23:59:59${document.getElementById('timeZone').value}` // String | Date range filter based on the date the individual resources were completed. UTC is the default if no TZ is supplied, however alternate timezones can be used e.g: '2022-11-22T09:11:11.111+08:00/2022-11-30T07:17:44.586-07'. . Intervals are represented as an ISO-8601 string. For example: YYYY-MM-DDThh:mm:ss/YYYY-MM-DDThh:mm:ss
           };
           let allBotReportingTurns = [];
-          const botTurns = await analyticsapi.getAnalyticsBotflowDivisionsReportingturns(botFlowIdSelected, opts);
+          let botTurns = await analyticsapi.getAnalyticsBotflowDivisionsReportingturns(botFlowIdSelected, opts);
           allBotReportingTurns = allBotReportingTurns.concat(botTurns.entities);  
 
           while (botTurns.nextUri) {
