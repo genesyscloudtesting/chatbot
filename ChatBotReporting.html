@@ -383,58 +383,6 @@
           }
           console.log(allBotReportingTurns)
           for (const botReportingTurn of allBotReportingTurns) {
-          //if (evaluations.totalHits > 100) {
-          //  while (pageNumber < Math.ceil(evaluations.totalHits / 100)) {
-          //    pageNumber++
-          //    const nextConversations = await getEvaluations(pageNumber, formIdSelected)
-          //    evaluations.results = evaluations.results.concat(nextConversations.results)
-          //  }
-          //}
-          //if (Object.keys(evaluations).length === 0 && evaluations.constructor === Object) {
-          //  console.log('No evaluations found')
-          //  document.getElementById('spinner').style.display = 'none'
-          //  notification('Warning', `No evaluations found for the date range`)
-          // return
-          //}
-
-          /*for (const conv of evaluations.results) {
-            let data = []
-            let questionScores = []
-            const evaluation = await qapi.getQualityConversationEvaluation(conv.group.conversationId, conv.group.evaluationId, { expand: 'agent,evaluator' })
-            console.log('Evaluation: ', evaluation)
-            //group filtering if selected
-            if (groupMembers) {
-              const found = groupMembers.entities.find((found) => found.id === evaluation.agent.id)
-              if (!found) {
-                console.log('Agent not in group')
-                continue
-              }
-            }
-            for (const question of evaluation.answers.questionGroupScores) {
-              for (const questionScore of question.questionScores) {
-                let score = {
-                  name: 'Gathered Later',
-                  questionId: questionScore.questionId,
-                  questionGroupId: question.questionGroupId,
-                  score: questionScore.score,
-                  comment: questionScore?.comments ? questionScore.comments : '',
-                  aiExplanation: questionScore?.aiAnswer?.explanation ? questionScore.aiAnswer.explanation : '',
-                  aiFailureType: questionScore?.aiAnswer?.failureType ? questionScore.aiAnswer.failureType : '',
-                  markedNA: questionScore.markedNA
-                }
-                questionScores.push(score)
-              }
-            }
-            console.log('Question Scores: ', questionScores)
-            for (const answer of questionScores) {
-              // prettier-ignore
-              const group = form.questionGroups.find(group => group.id === answer.questionGroupId)
-              for (const question of group.questions) {
-                if (question.id === answer.questionId) {
-                  answer.name = question.text
-                }
-              }
-            }*/
             // add the column names to the first row
             if (csvRows.length === 0) {
               csvRows.push(['Bot_Session_ID'])
@@ -446,7 +394,12 @@
             // add the data to the row
             csvRows.push([botReportingTurn.sessionId])
             csvRows[csvRows.length - 1].push(botReportingTurn.conversation.id)
-            csvRows[csvRows.length - 1].push(new Date(botReportingTurn.dateCreated).toLocaleString().replace(',', ' '))
+            const botReportingTurnDate = new Date(botReportingTurn.dateCreated.toLocaleString().replace(',', ' '))
+            const dateOptions = {
+              timeZone: 'Australia/Brisbane', // This corresponds to +10:00 for AEST
+            };
+            const convertedDateString = new Intl.DateTimeFormat('en-AU', options).format(botReportingTurnDate);
+            csvRows[csvRows.length - 1].push(convertedDateString)
             csvRows[csvRows.length - 1].push(botReportingTurn.userInput)
             csvRows[csvRows.length - 1].push(botReportingTurn.botPrompts)
           }
