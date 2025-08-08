@@ -382,7 +382,7 @@
             allBotReportingTurns = allBotReportingTurns.concat(botTurns.entities);  
           }
           console.log(allBotReportingTurns)
-          
+          for (botReportingTurn of allBotReportingTurns) {
           //if (evaluations.totalHits > 100) {
           //  while (pageNumber < Math.ceil(evaluations.totalHits / 100)) {
           //    pageNumber++
@@ -434,56 +434,27 @@
                   answer.name = question.text
                 }
               }
-            }
+            }*/
             // add the column names to the first row
             if (csvRows.length === 0) {
-              csvRows.push(['Agent'])
-              csvRows[0].push('Evaluator')
-              csvRows[0].push('Conversation Date')
-              csvRows[0].push('Conversation Link')
-              csvRows[0].push('Conversation ID')
-              csvRows[0].push('Evaluation ID')
-              csvRows[0].push('Agent Reviewed')
-              csvRows[0].push('Total Score')
-              for (const question of questionScores) {
-                csvRows[0].push(question.name)
-                csvRows[0].push('AI - Reason for Selection Explanation')
-                csvRows[0].push('Comments')
-              }
-              csvRows[0].push('Evaluator Comments')
-              csvRows[0].push('Agent Comments')
+              csvRows.push(['Bot_Session_ID'])
+              csvRows[0].push('Conversation_ID')
+              csvRows[0].push('Timestamp (UTC)')
+              csvRows[0].push('Utterance')
+              csvRows[0].push('Bot Response')
             }
             // add the data to the row
-            csvRows.push([evaluation.agent.name])
-            csvRows[csvRows.length - 1].push(evaluation.evaluator.name)
-            csvRows[csvRows.length - 1].push(new Date(evaluation.conversationDate).toLocaleString().replace(',', ' '))
-            csvRows[csvRows.length - 1].push(`<gux-button onclick="openConversationId('${conv.group.conversationId}')">Open</gux-button>`)
-            csvRows[csvRows.length - 1].push(conv.group.conversationId)
-            csvRows[csvRows.length - 1].push(conv.group.evaluationId)
-            csvRows[csvRows.length - 1].push(evaluation.agentHasRead)
-            csvRows[csvRows.length - 1].push(evaluation.answers.totalScore)
-            for (const question of questionScores) {
-              if (question.markedNA === true) {
-                csvRows[csvRows.length - 1].push('N/A')
-              }
-              else {
-                csvRows[csvRows.length - 1].push(question.score)
-              }
-              if (question.aiExplanation === '' && question.aiFailureType !== '') {
-                csvRows[csvRows.length - 1].push('Genesys AI could not accurately answer this question')
-              } else {
-              csvRows[csvRows.length - 1].push(question.aiExplanation)
-              }
-              csvRows[csvRows.length - 1].push(question.comment)
-            }
-            csvRows[csvRows.length - 1].push(evaluation.answers?.comments ? evaluation.answers.comments : '')
-            csvRows[csvRows.length - 1].push(evaluation.answers?.agentComments ? evaluation.answers.agentComments : '')
+            csvRows.push([botReportingTurn.sessionId])
+            csvRows[csvRows.length - 1].push(botReportingTurn.conversation.id)
+            csvRows[csvRows.length - 1].push(new Date(botReportingTurn.dateCreated).toLocaleString().replace(',', ' '))
+            csvRows[csvRows.length - 1].push(botReportingTurn.userInput)
+            csvRows[csvRows.length - 1].push(botReportingTurn.botPrompts)
           }
           console.log(csvRows)
           await buildTableRows(csvRows)
           ensurePageScroll()
           document.getElementById('spinner').style.display = 'none'
-          document.getElementById('download').style.display = 'block'*/
+          document.getElementById('download').style.display = 'block'
         } catch (err) {
           console.log('Error: ', err)
           notification('Error', `Error: ${err}`)
