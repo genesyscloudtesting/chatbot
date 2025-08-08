@@ -385,25 +385,13 @@
             if (csvRows.length === 0) {
               csvRows.push(['Bot_Session_ID'])
               csvRows[0].push('Conversation_ID')
-              csvRows[0].push('Timestamp (UTC)')
+              csvRows[0].push('Timestamp')
               csvRows[0].push('Utterance')
               csvRows[0].push('Bot Response')
             }
             // add the data to the row
             csvRows.push([botReportingTurn.sessionId])
             csvRows[csvRows.length - 1].push(botReportingTurn.conversation.id)
-            //const botReportingTurnDate = new Date(botReportingTurn.dateCreated.toLocaleString().replace(',', ' '))
-            //const dateOptions = {
-            //  year: 'numeric',
-            //  month: 'numeric',
-            //  day: 'numeric',
-            //  hour: 'numeric',
-            //  minute: 'numeric',
-            //  second: 'numeric',
-            //  timeZone: 'Australia/Brisbane',
-            //  hour12: false // Use 24-hour format
-            //};
-            //const convertedDateString = new Intl.DateTimeFormat('en-AU', dateOptions).format(botReportingTurnDate);
             csvRows[csvRows.length - 1].push(new Date(botReportingTurn.dateCreated).toLocaleString().replace(',', ' '))
             csvRows[csvRows.length - 1].push(botReportingTurn.userInput)
             csvRows[csvRows.length - 1].push(botReportingTurn.botPrompts)
