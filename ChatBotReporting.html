@@ -396,7 +396,14 @@
             csvRows[csvRows.length - 1].push(botReportingTurn.conversation.id)
             const botReportingTurnDate = new Date(botReportingTurn.dateCreated.toLocaleString().replace(',', ' '))
             const dateOptions = {
+              year: 'numeric',
+              month: 'numeric',
+              day: 'numeric',
+              hour: 'numeric',
+              minute: 'numeric',
+              second: 'numeric',
               timeZone: 'Australia/Brisbane', // This corresponds to +10:00 for AEST
+              hour12: false // Use 24-hour format
             };
             const convertedDateString = new Intl.DateTimeFormat('en-AU', dateOptions).format(botReportingTurnDate);
             csvRows[csvRows.length - 1].push(convertedDateString)
