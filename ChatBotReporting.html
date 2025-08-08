@@ -404,7 +404,7 @@
             //  hour12: false // Use 24-hour format
             //};
             //const convertedDateString = new Intl.DateTimeFormat('en-AU', dateOptions).format(botReportingTurnDate);
-            csvRows[csvRows.length - 1].push(new Date(botReportingTurn.dateCreated.toLocaleString().replace(',', ' ')))
+            csvRows[csvRows.length - 1].push(new Date(botReportingTurn.dateCreated).toLocaleString().replace(',', ' '))
             csvRows[csvRows.length - 1].push(botReportingTurn.userInput)
             csvRows[csvRows.length - 1].push(botReportingTurn.botPrompts)
           }
