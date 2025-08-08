@@ -398,7 +398,7 @@
             const dateOptions = {
               timeZone: 'Australia/Brisbane', // This corresponds to +10:00 for AEST
             };
-            const convertedDateString = new Intl.DateTimeFormat('en-AU', options).format(botReportingTurnDate);
+            const convertedDateString = new Intl.DateTimeFormat('en-AU', dateOptions).format(botReportingTurnDate);
             csvRows[csvRows.length - 1].push(convertedDateString)
             csvRows[csvRows.length - 1].push(botReportingTurn.userInput)
             csvRows[csvRows.length - 1].push(botReportingTurn.botPrompts)
