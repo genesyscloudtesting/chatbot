@@ -388,6 +388,12 @@
               csvRows[0].push('Timestamp')
               csvRows[0].push('Utterance')
               csvRows[0].push('Bot Response')
+              csvRows[0].push('Agent Name')
+              csvRows[0].push('Agent Email')
+              csvRows[0].push('Interaction Result')
+              csvRows[0].push('Interaction Reason')
+              csvRows[0].push('Interaction Sub Reason')
+              csvRows[0].push('Journey')
             }
             // add the data to the row
             csvRows.push([botReportingTurn.sessionId])
@@ -400,8 +406,42 @@
             for (let i = 0; i < listBotPrompts.length; i++) {
               strBotPrompts = strBotPrompts + listBotPrompts[i] + "\n"
             }
-            console.log('Bot Prompt: ' + strBotPrompts)
             csvRows[csvRows.length - 1].push(strBotPrompts)
+
+            // Obtain conversation data
+            let conversationData = await convapi.getConversation(botReportingTurn.conversation.id)
+            let conversationAttributes = conversationData.participants[0].attributes
+            
+            if (conversationAttributes.AgentName) {
+              csvRows[csvRows.length - 1].push(conversationAttributes.AgentName);
+            } else {
+              csvRows[csvRows.length - 1].push(""); 
+            }
+            if (conversationAttributes.AgentEmail) {
+              csvRows[csvRows.length - 1].push(conversationAttributes.AgentEmail);
+            } else {
+              csvRows[csvRows.length - 1].push(""); 
+            }
+            if (conversationAttributes.InteractionResult) {
+              csvRows[csvRows.length - 1].push(conversationAttributes.InteractionResult);
+            } else {
+              csvRows[csvRows.length - 1].push(""); 
+            }
+            if (conversationAttributes.InteractionReason) {
+              csvRows[csvRows.length - 1].push(conversationAttributes.InteractionReason);
+            } else {
+              csvRows[csvRows.length - 1].push(""); 
+            }
+            if (conversationAttributes.InteractionSubReason) {
+              csvRows[csvRows.length - 1].push(conversationAttributes.InteractionSubReason);
+            } else {
+              csvRows[csvRows.length - 1].push(""); 
+            }
+            if (conversationAttributes.Journey) {
+              csvRows[csvRows.length - 1].push(conversationAttributes.Journey);
+            } else {
+              csvRows[csvRows.length - 1].push(""); 
+            }
           }
           console.log(csvRows)
           await buildTableRows(csvRows)
