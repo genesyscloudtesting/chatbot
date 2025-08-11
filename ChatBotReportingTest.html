@@ -442,6 +442,7 @@
             } else {
               csvRows[csvRows.length - 1].push(""); 
             }
+            setTimeout(function(){}, 500);
           }
           console.log(csvRows)
           await buildTableRows(csvRows)
