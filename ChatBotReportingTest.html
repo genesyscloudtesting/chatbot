@@ -398,7 +398,7 @@
             let strBotPrompts = ""
             listBotPrompts = botReportingTurn.botPrompts
             for (let i = 0; i < listBotPrompts.length; i++) {
-              strBotPrompts = strBotPrompts + listBotPrompts[i] + "<BR>"
+              strBotPrompts = strBotPrompts + listBotPrompts[i] + "\n"
             }
             console.log('Bot Prompt: ' + strBotPrompts)
             csvRows[csvRows.length - 1].push(strBotPrompts)
