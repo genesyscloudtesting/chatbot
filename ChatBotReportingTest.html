@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<!-- Created by Robert Foote -->
+<html>
+  <head>
+    <meta name="robots" content="noindex" />
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>Chat Bot Reporting</title>
+    <meta name="Template" content="" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Genesys CSS https://spark.genesys.com/ In PROD set a version https://www.jsdelivr.com/package/npm/genesys-spark-components -->
+    <link no-cors href="https://cdn.jsdelivr.net/npm/genesys-spark-components@4.138.2/dist/genesys-webcomponents/genesys-webcomponents.min.css" rel="stylesheet" />
+    <script no-cors type="module" src="https://cdn.jsdelivr.net/npm/genesys-spark-components@4.138.2/dist/genesys-webcomponents/genesys-webcomponents.esm.min.js"></script>
+    <!-- Genesys SDK info https://developer.genesys.cloud/  In PROD set a version -->
+    <script src="https://sdk-cdn.mypurecloud.com/javascript/latest/purecloud-platform-client-v2.min.js"></script>
+    <script src="https://sdk-cdn.mypurecloud.com/client-apps/2.6.7/purecloud-client-app-sdk.js"></script>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: auto;
+        }
+        .content-wrapper {
+            min-width: 1200px; /* Adjust this value based on your content */
+            min-height: 100%;
+            padding: 20px;
+        }
+        #tableLocation {
+            margin-top: 20px;
+        }
+    </style>
+  </head>
+  <body onload="start()">
+    <div class="content-wrapper">
+      <div><h3>Chat Bot Reporting</h3></div>
+      <div style="display: inline-flex">
+        <gux-dropdown filter-type="starts-with" placeholder="UTC-00:00" id="timeZone" style="width: 150px; padding: 8px">
+          <gux-listbox aria-label="Time Zone">
+            <gux-option value="-12:00">UTC-12:00</gux-option><gux-option value="-11:00">UTC-11:00</gux-option><gux-option value="-10:00">UTC-10:00</gux-option
+            ><gux-option value="-09:30">UTC-09:30</gux-option><gux-option value="-09:00">UTC-09:00</gux-option><gux-option value="-08:00">UTC-08:00</gux-option
+            ><gux-option value="-07:00">UTC-07:00</gux-option><gux-option value="-06:00">UTC-06:00</gux-option><gux-option value="-05:00">UTC-05:00</gux-option
+            ><gux-option value="-04:00">UTC-04:00</gux-option><gux-option value="-03:30">UTC-03:30</gux-option><gux-option value="-03:00">UTC-03:00</gux-option
+            ><gux-option value="-02:00">UTC-02:00</gux-option><gux-option value="-01:00">UTC-01:00</gux-option><gux-option value="-00:00">UTC+00:00</gux-option
+            ><gux-option value="+00:00">UTC+00:00</gux-option><gux-option value="+01:00">UTC+01:00</gux-option><gux-option value="+02:00">UTC+02:00</gux-option
+            ><gux-option value="+03:00">UTC+03:00</gux-option><gux-option value="+03:30">UTC+03:30</gux-option><gux-option value="+04:00">UTC+04:00</gux-option
+            ><gux-option value="+04:30">UTC+04:30</gux-option><gux-option value="+05:00">UTC+05:00</gux-option><gux-option value="+05:30">UTC+05:30</gux-option
+            ><gux-option value="+05:45">UTC+05:45</gux-option><gux-option value="+06:00">UTC+06:00</gux-option><gux-option value="+06:30">UTC+06:30</gux-option
+            ><gux-option value="+07:00">UTC+07:00</gux-option><gux-option value="+08:00">UTC+08:00</gux-option><gux-option value="+08:45">UTC+08:45</gux-option
+            ><gux-option value="+09:00">UTC+09:00</gux-option><gux-option value="+09:30">UTC+09:30</gux-option><gux-option value="+10:00">UTC+10:00</gux-option
+            ><gux-option value="+10:30">UTC+10:30</gux-option><gux-option value="+11:00">UTC+11:00</gux-option><gux-option value="+12:00">UTC+12:00</gux-option
+            ><gux-option value="+12:45">UTC+12:45</gux-option><gux-option value="+13:00">UTC+13:00</gux-option><gux-option value="+14:00">UTC+14:00</gux-option>
+          </gux-listbox>
+        </gux-dropdown>
+        <gux-datepicker id="datepicker" style="padding: 8px" mode="range" value="" number-of-months="2"></gux-datepicker>
+        <gux-button style="padding: 8px" accent="secondary" onclick="thisWeek()">This Week</gux-button>
+        <gux-button style="padding: 8px" accent="secondary" onclick="last10days()">Last 10 Days</gux-button>
+        <gux-button style="padding: 8px" accent="primary" onclick="getData()">Search</gux-button>
+        <gux-button style="padding: 8px" accent="secondary" onclick="clearData()">Clear</gux-button>
+        <gux-button id="download" style="padding: 8px; display: none" accent="ghost" onclick="buildCsv()">Download</gux-button>
+      </div>
+      <div></div>
+      <div style="display: inline-flex">
+        <gux-dropdown filter-type="starts-with" placeholder="Select Bot Flow" id="botFlowId" style="display: block; width: 250px; padding: 8px">
+          <gux-listbox id="botFlowIdList" aria-label="Bot Flow Name"> </gux-listbox>
+        </gux-dropdown>
+        <!-- <gux-dropdown filter-type="starts-with" placeholder="Select Version (Default latest)" id="formIdVersion" style="display: block; width: 250px; padding: 8px">
+          <gux-listbox id="formIdListVersions" aria-label="Form Version"> </gux-listbox>
+        </gux-dropdown>
+        <gux-dropdown filter-type="starts-with" placeholder="Select Group(optional)" id="groupId" style="display: block; width: 250px; padding: 8px">
+          <gux-listbox id="groupIdList" aria-label="Group Name"> </gux-listbox>
+        </gux-dropdown> -->
+      </div>
+      <div id="spinner" style="justify-self: center; padding: 8px; display: none">
+        <gux-radial-loading id="loading" class="loading" screenreader-text="Loading..."></gux-radial-loading>
+      </div>
+      <div id="tableLocation" style="padding: 8px"></div>
+      <div id="tableLocation" style="padding: 8px; overflow-x: auto"></div>
+    </div>
+    
+    <script>
+      'use strict' //Enables strict mode is JavaScript
+      let url = new URL(document.location.href)
+      let gc_region = url.searchParams.get('gc_region')
+      let gc_clientId = url.searchParams.get('gc_clientId')
+      let gc_redirectUrl = url.searchParams.get('gc_redirectUrl')
+      let csvRows = []
+      let botFlowIdList = []
+
+      //Getting and setting the GC details from dynamic URL and session storage
+      gc_region ? sessionStorage.setItem('gc_region', gc_region) : (gc_region = sessionStorage.getItem('gc_region'))
+      gc_clientId ? sessionStorage.setItem('gc_clientId', gc_clientId) : (gc_clientId = sessionStorage.getItem('gc_clientId'))
+      gc_redirectUrl ? sessionStorage.setItem('gc_redirectUrl', gc_redirectUrl) : (gc_redirectUrl = sessionStorage.getItem('gc_redirectUrl'))
+
+      let platformClient = require('platformClient')
+      const client = platformClient.ApiClient.instance
+      //const qapi = new platformClient.QualityApi()
+      //const gapi = new platformClient.GroupsApi()
+      const analyticsapi = new platformClient.AnalyticsApi()
+      const architectapi = new platformClient.ArchitectApi()
+      const convapi = new platformClient.ConversationsApi()
+
+      // Configure Client App
+      const ClientApp = window.purecloud.apps.ClientApp
+      const myClientApp = new ClientApp({
+        pcEnvironment: gc_region,
+      })
+
+      async function start() {
+        try {
+          client.setEnvironment(gc_region)
+          client.setPersistSettings(true, '_mm_')
+
+          console.log('%cLogging in to Genesys Cloud', 'color: green')
+          await client.loginPKCEGrant(gc_clientId, gc_redirectUrl, {})
+          getUTCOffset()
+          thisMonth()
+          getBotFlows()
+          ensurePageScroll()
+        } catch (err) {
+          console.log('Error: ', err)
+        }
+      }
+
+      //function last30days() {
+      //  let today = new Date()
+      //  let aMonthAgo = new Date()
+      //  aMonthAgo.setMonth(aMonthAgo.getMonth() - 1)
+        // prettier-ignore
+      //  document.getElementById('datepicker').value = `${aMonthAgo.getFullYear()}-${String(aMonthAgo.getMonth() + 1).padStart(2, '0')}-${String(aMonthAgo.getDate()).padStart(2,'0')}/${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+      //}
+
+      function last10days() {
+        let today = new Date()
+        let tenDaysAgo = new Date()
+        tenDaysAgo.setDate(tenDaysAgo.getDate() - 10)
+        // prettier-ignore
+        document.getElementById('datepicker').value = `${tenDaysAgo.getFullYear()}-${String(tenDaysAgo.getMonth() + 1).padStart(2, '0')}-${String(tenDaysAgo.getDate()).padStart(2,'0')}/${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+      }
+
+      function thisMonth() {
+        let today = new Date()
+        // prettier-ignore
+        document.getElementById('datepicker').value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01/${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2,'0')}-${String(today.getDate()).padStart(2, '0')}`
+      }
+
+      function getUTCOffset() {
+        const now = new Date()
+        const offsetMinutes = now.getTimezoneOffset()
+        const offsetHours = -offsetMinutes / 60 // Invert for standard UTC offset representation
+
+        let offsetString = ''
+        if (offsetHours === 0) {
+          offsetString = '+00:00'
+        } else {
+          const sign = offsetHours > 0 ? '+' : '-'
+          const absHours = Math.abs(Math.floor(offsetHours))
+          const minutes = Math.abs(Math.floor((offsetHours - absHours) * 60))
+          const hoursString = absHours.toString().padStart(2, '0')
+          const minutesString = minutes.toString().padStart(2, '0')
+          offsetString = `${sign}${hoursString}:${minutesString}`
+        }
+        document.getElementById('timeZone').value = offsetString
+      }
+
+      function generateRobustCSV(rows) {
+        // Helper function to escape and quote a field if necessary
+        function escapeField(field) {
+          if (field === null || field === undefined) {
+            return '';
+          }
+          field = field.toString();
+          if (field.includes('"') || field.includes(',') || field.includes('\n') || field.includes('\r')) {
+            // Escape double quotes by doubling them and wrap the field in quotes
+            return '"' + field.replace(/"/g, '""') + '"';
+          }
+          return field;
+        }
+
+        // Convert rows to CSV
+        const csvContent = rows.map(row => row.map(escapeField).join(',')).join('\r\n');
+      
+        // Prepend the data URI scheme
+        //return 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvContent);
+        return 'data:text/csv;charset=utf-8,' + csvContent
+      }
+      
+      // download csv
+      function buildCsv() {
+        //let csvContent = 'data:text/csv;charset=utf-8,' + csvRows.map((e) => e.join(',')).join('\r\n')
+        let csvContent = generateRobustCSV(csvRows);
+        const encodedUri = encodeURI(csvContent)
+        const link = document.createElement('a')
+        link.setAttribute('href', encodedUri)
+        link.setAttribute('download', 'report.csv')
+        document.body.appendChild(link)
+        link.click()
+      }
+
+      async function clearData() {
+        console.log('%cClearing data', 'color: green')
+        document.getElementById('tableLocation').innerHTML = ''
+        document.getElementById('spinner').style.display = 'none'
+        document.getElementById('download').style.display = 'none'
+        csvRows = []
+        document.getElementById('botFlowId').value = ''
+        //document.getElementById('groupId').value = ''
+        //document.getElementById('formIdVersion').value = ''
+        //document.getElementById('formIdListVersions').innerHTML = ''
+      }
+
+      function notification(type, message) {
+        if (window.location !== window.parent.location) {
+          // if in an iframe
+          myClientApp.alerting.showToastPopup(type, message)
+          return
+        }
+        window.alert(message)
+        return
+      }
+
+      function ensurePageScroll() {
+          const contentWrapper = document.querySelector('.content-wrapper');
+          const windowWidth = window.innerWidth;
+          const windowHeight = window.innerHeight;
+          const contentWidth = contentWrapper.scrollWidth;
+          const contentHeight = contentWrapper.scrollHeight;
+          
+          document.body.style.overflowX = contentWidth > windowWidth ? 'scroll' : 'hidden';
+          document.body.style.overflowY = contentHeight > windowHeight ? 'scroll' : 'hidden';
+      }
+      
+      // dynamic table creation
+      async function buildTableRows(rows) {
+          for (const row of rows) {
+              let tableBody = document.getElementById('tableBody')
+              if (!tableBody) {
+                  // create the top table row if its not already there
+                  console.log('Creating table')
+                  let top = document.getElementById('tableLocation')
+                  let guxTable = document.createElement('gux-table')
+                  let table = document.createElement('table')
+                  let header = document.createElement('thead')
+                  let headerRow = document.createElement('tr')
+                  let tbody = document.createElement('tbody')
+      
+                  headerRow.setAttribute('data-row-id', 'head')
+                  tbody.setAttribute('id', 'tableBody')
+                  table.setAttribute('slot', 'data')
+                  guxTable.setAttribute('resizable-columns', '')
+      
+                  header.appendChild(headerRow)
+                  guxTable.appendChild(table)
+                  table.appendChild(header)
+                  table.appendChild(tbody)
+      
+                  // create column names on first row
+                  for (const item of row) {
+                      let th = document.createElement('th')
+                      th.setAttribute('data-column-name', item)
+                      th.style.textWrap = 'auto'
+                      th.innerHTML = item
+                      th.title = item
+                      headerRow.appendChild(th)
+                  }
+                  top.appendChild(guxTable)
+                  continue
+              }
+              if (tableBody) {
+                  // add data to the row
+                  let tr = document.createElement('tr')
+                  for (const item of row) {
+                      let column = document.createElement('td')
+                      column.style.textWrap = 'auto'
+                      column.innerHTML = item
+                      tr.appendChild(column)
+                  }
+                  tableBody.appendChild(tr)
+              }
+          }
+      }
+
+      // used to update the versions dropdown
+      //let currentVersion = ''
+      //window.addEventListener('click', function (e) {
+      //  if (e.target.id.includes('formIdOption')) {
+      //    if (document.getElementById('formId').value === currentVersion) {
+      //      return
+      //    }
+      //    currentVersion = document.getElementById('formId').value
+      //    console.log('Form ID: ', currentVersion)
+      //   getEvaluationFormVersions()
+      //  }
+      //})
+      
+      
+      async function getBotFlows() {
+        let pageNumber = 1
+        let opts = { 
+          'type': ["digitalbot"], // [String] | Type
+          'pageNumber': pageNumber, // Number | Page number
+          'pageSize': 300,
+          'divisionId': ["48859d76-7716-4aa0-afb1-8ec80aaa9345","61507d2d-b7d0-44fc-99ed-6a974c486994","4e51b1c6-7803-4005-820a-ccd6fc1936b0","d5621b7a-ce92-4eb8-99b1-ac41298691fe","c6ec94b1-8e0c-4c58-a790-0f99c193370b","d01400af-e72b-4a03-bff5-5075e3931643","38d922bb-bd04-4c76-acb5-1456893ca05c"] // [String] | division ID(s): Client Services - Customer Support, Intent Connect, NIS, NCS, NCS Agent Support, Retail, Retail Agent Support
+        };
+
+        const flows = await architectapi.getFlows(opts)
+        if (flows.pageCount > 1) {
+          while (pageNumber < pageCount) {
+            pageNumber++
+            let opts = { 
+              'type': ["digitalbot"], 
+              'pageNumber': pageNumber,
+              'pageSize': 300,
+              'divisionId': ["48859d76-7716-4aa0-afb1-8ec80aaa9345","61507d2d-b7d0-44fc-99ed-6a974c486994","4e51b1c6-7803-4005-820a-ccd6fc1936b0","d5621b7a-ce92-4eb8-99b1-ac41298691fe","c6ec94b1-8e0c-4c58-a790-0f99c193370b","d01400af-e72b-4a03-bff5-5075e3931643","38d922bb-bd04-4c76-acb5-1456893ca05c"] // [String] | division ID(s): Client Services - Customer Support, Intent Connect, NIS, NCS, NCS Agent Support, Retail, Retail Agent Support
+            };
+            const nextFlows = await architectapi.getFlows(opts)
+            flows.entities = flows.entities.concat(nextFlows.entities)
+          }
+        }
+
+        console.log('Flows: ', flows)
+        botFlowIdList = flows.entities
+
+        let drop = document.getElementById('botFlowIdList')
+        for (const flow of flows.entities) {
+          let option = document.createElement('gux-option')
+          option.id = 'botFlowIdOption'
+          option.value = flow.id
+          option.innerHTML = flow.name
+          drop.appendChild(option)
+        }
+      }
+
+      async function getData() {
+        console.log('%cGetting data', 'color: green')
+        csvRows = []
+        document.getElementById('tableLocation').innerHTML = ''
+        let groupMembers
+        if (!document.getElementById('botFlowId').value) {
+          notification('Warning', 'Please select a Bot Flow')
+          return
+        }
+        //if (document.getElementById('groupId').value) {
+        //  groupMembers = await getGroupMembers()
+        //}
+        document.getElementById('spinner').style.display = 'block'
+        let pageNumber = 1
+        try {
+          let botFlowIdSelected = document.getElementById('botFlowId').value
+          //if (document.getElementById('formIdListVersions').value) {
+          //  console.log('selected version')
+          //  formIdSelected = document.getElementById('formIdListVersions').value
+          //}
+          console.log(botFlowIdSelected)
+          //const form = await qapi.getQualityFormsEvaluation(formIdSelected)
+          
+          //console.log('Form: ', form)
+          //const evaluations = await getEvaluations(pageNumber, formIdSelected)
+          //console.log('Evaluations: ', evaluations)
+          let opts = { 
+            'pageSize': "250",
+            'interval': `${document.getElementById('datepicker').value.split('/')[0]}T00:00:00${document.getElementById('timeZone').value}/${document.getElementById('datepicker').value.split('/')[1]}T23:59:59${document.getElementById('timeZone').value}` // String | Date range filter based on the date the individual resources were completed. UTC is the default if no TZ is supplied, however alternate timezones can be used e.g: '2022-11-22T09:11:11.111+08:00/2022-11-30T07:17:44.586-07'. . Intervals are represented as an ISO-8601 string. For example: YYYY-MM-DDThh:mm:ss/YYYY-MM-DDThh:mm:ss
+          };
+          let allBotReportingTurns = [];
+          let botTurns = await analyticsapi.getAnalyticsBotflowDivisionsReportingturns(botFlowIdSelected, opts);
+          allBotReportingTurns = allBotReportingTurns.concat(botTurns.entities);  
+
+          while (botTurns.nextUri) {
+            let nextUri = botTurns.nextUri;
+            // Create a URL object with a dummy base to access searchParams
+            const fullUrl = new URL(nextUri, 'https://dummy-base.com');
+            // Use the get() method to extract the specific parameter
+            const afterValue = fullUrl.searchParams.get('after');
+            let opts = { 
+              'after': afterValue,  
+              'pageSize': "250",
+              'interval': `${document.getElementById('datepicker').value.split('/')[0]}T00:00:00${document.getElementById('timeZone').value}/${document.getElementById('datepicker').value.split('/')[1]}T23:59:59${document.getElementById('timeZone').value}` // String | Date range filter based on the date the individual resources were completed. UTC is the default if no TZ is supplied, however alternate timezones can be used e.g: '2022-11-22T09:11:11.111+08:00/2022-11-30T07:17:44.586-07'. . Intervals are represented as an ISO-8601 string. For example: YYYY-MM-DDThh:mm:ss/YYYY-MM-DDThh:mm:ss
+            };
+            botTurns = await analyticsapi.getAnalyticsBotflowDivisionsReportingturns(botFlowIdSelected, opts);
+            allBotReportingTurns = allBotReportingTurns.concat(botTurns.entities);  
+          }
+          console.log(allBotReportingTurns)
+          for (const botReportingTurn of allBotReportingTurns) {
+            // add the column names to the first row
+            if (csvRows.length === 0) {
+              csvRows.push(['Bot_Session_ID'])
+              csvRows[0].push('Conversation_ID')
+              csvRows[0].push('Timestamp')
+              csvRows[0].push('Utterance')
+              csvRows[0].push('Bot Response')
+            }
+            // add the data to the row
+            csvRows.push([botReportingTurn.sessionId])
+            csvRows[csvRows.length - 1].push(botReportingTurn.conversation.id)
+            csvRows[csvRows.length - 1].push(new Date(botReportingTurn.dateCreated).toLocaleString().replace(',', ' '))
+            csvRows[csvRows.length - 1].push(botReportingTurn.userInput)
+            csvRows[csvRows.length - 1].push(botReportingTurn.botPrompts)
+          }
+          console.log(csvRows)
+          await buildTableRows(csvRows)
+          ensurePageScroll()
+          document.getElementById('spinner').style.display = 'none'
+          document.getElementById('download').style.display = 'block'
+        } catch (err) {
+          console.log('Error: ', err)
+          notification('Error', `Error: ${err}`)
+        }
+      }
+
+      function openConversationId(conversationId) {
+        if (window.location !== window.parent.location) {
+          // if in an iframe (Genesys Cloud)
+          myClientApp.conversations.showInteractionDetails(conversationId)
+          return
+        }
+        window.open(`https://apps.${gc_region}/directory/#/analytics/interactions/${conversationId}/admin/details`, '_blank')
+        return
+      }
+
+      async function getEvaluations(pageNumber, value) {
+        let evaluations = await qapi.postAnalyticsEvaluationsAggregatesQuery({
+          // prettier-ignore
+          interval: `${document.getElementById('datepicker').value.split('/')[0]}T00:00:00${document.getElementById('timeZone').value}/${document.getElementById('datepicker').value.split('/')[1]}T23:59:59${document.getElementById('timeZone').value}`,
+          groupBy: ['evaluationId', 'conversationId'],
+          filter: {
+            type: 'and',
+            predicates: [
+              {
+                dimension: 'formId',
+                operator: 'matches',
+                value: value,
+              },
+            ],
+          },
+          metrics: ['nEvaluations'],
+        })
+
+        return evaluations
+      }
+
+      async function getEvaluationForms() {
+        let pageNumber = 1
+        const forms = await getEvaluationFormsPage(pageNumber)
+        if (forms.total > 100) {
+          while (pageNumber < Math.ceil(forms.total / 100)) {
+            pageNumber++
+            const nextConversations = await getEvaluationFormsPage(pageNumber)
+            forms.entities = forms.entities.concat(nextConversations.entities)
+          }
+        }
+
+        console.log('Forms: ', forms)
+        formIdList = forms.entities
+
+        let drop = document.getElementById('formIdList')
+        for (const form of forms.entities) {
+          if (form.publishedVersions) {
+            let option = document.createElement('gux-option')
+            option.id = 'formIdOption'
+            option.value = form.publishedVersions.entities[0].id
+            option.innerHTML = form.publishedVersions.entities[0].name
+            drop.appendChild(option)
+          }
+        }
+      }
+
+      async function getEvaluationFormsPage(pageNumber) {
+        let forms = await qapi.getQualityFormsEvaluations({
+          pageSize: 100,
+          pageNumber: pageNumber,
+          sortOrder: 'asc',
+          expand: ['publishHistory'],
+        })
+        return forms
+      }
+
+      async function getEvaluationFormVersions() {
+        if (formIdList.length === 0) {
+          return
+        }
+        let drop = document.getElementById('formIdListVersions')
+        drop.innerHTML = ''
+        for (const form of formIdList) {
+          const found = form?.publishedVersions?.entities.find((found) => found.id === document.getElementById('formId').value)
+          if (found) {
+            let counter = 0
+            for (const version of form.publishedVersions.entities) {
+              let option = document.createElement('gux-option')
+              option.id = 'formIdOption'
+              option.value = version.id
+              option.innerHTML = `${counter} | ${new Date(version.modifiedDate).toLocaleString().replace(',', ' ')}`
+              drop.appendChild(option)
+              counter++
+            }
+            return
+          }
+        }
+      }
+
+      async function getGroups() {
+        let groups = await gapi.getGroups({
+          pageSize: 200,
+          pageNumber: 1,
+          sortOrder: 'ascending',
+        })
+        console.log('Groups: ', groups)
+
+        let drop = document.getElementById('groupIdList')
+        for (const group of groups.entities) {
+          let option = document.createElement('gux-option')
+          option.value = group.id
+          option.innerHTML = group.name
+          drop.appendChild(option)
+        }
+      }
+
+      async function getGroupMembers() {
+        let groupId = document.getElementById('groupId').value
+        let members = await gapi.getGroupMembers(groupId, {
+          pageSize: 200,
+          pageNumber: 1,
+          sortOrder: 'ascending',
+        })
+        console.log('Members: ', members)
+        return members
+      }
+    </script>
+  </body>
+</html>
