@@ -394,7 +394,13 @@
             csvRows[csvRows.length - 1].push(botReportingTurn.conversation.id)
             csvRows[csvRows.length - 1].push(new Date(botReportingTurn.dateCreated).toLocaleString().replace(',', ' '))
             csvRows[csvRows.length - 1].push(botReportingTurn.userInput)
-            csvRows[csvRows.length - 1].push(botReportingTurn.botPrompts)
+            const listBotPrompts = []
+            let strBotPrompts = ""
+            listBotPrompts = botReportingTurn.botPrompts
+            for (let i = 0; i < listBotPrompts; i++) {
+              strBotPrompts = strBotPrompts + listBotPrompts[i] + "\n"
+            }
+            csvRows[csvRows.length - 1].push(strBotPrompts)
           }
           console.log(csvRows)
           await buildTableRows(csvRows)
