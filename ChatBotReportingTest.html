@@ -394,7 +394,7 @@
             csvRows[csvRows.length - 1].push(botReportingTurn.conversation.id)
             csvRows[csvRows.length - 1].push(new Date(botReportingTurn.dateCreated).toLocaleString().replace(',', ' '))
             csvRows[csvRows.length - 1].push(botReportingTurn.userInput)
-            const listBotPrompts = []
+            let listBotPrompts = []
             let strBotPrompts = ""
             listBotPrompts = botReportingTurn.botPrompts
             for (let i = 0; i < listBotPrompts.length; i++) {
