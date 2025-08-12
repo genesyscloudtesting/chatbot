@@ -438,15 +438,15 @@
               if (conversationAttributes.Journey) {
                 journey = conversationAttributes.Journey;
               }
-              csvRows[csvRows.length - 1].push(agentName);
-              csvRows[csvRows.length - 1].push(agentEmail);
-              csvRows[csvRows.length - 1].push(interactionResult);
-              csvRows[csvRows.length - 1].push(interactionReason);
-              csvRows[csvRows.length - 1].push(interactionSubReason);
-              csvRows[csvRows.length - 1].push(journey);
-              previousConversationId = conversationId;
               await new Promise(resolve => setTimeout(resolve, 500)); // Pause script to avoid API rate limits
             }
+            csvRows[csvRows.length - 1].push(agentName);
+            csvRows[csvRows.length - 1].push(agentEmail);
+            csvRows[csvRows.length - 1].push(interactionResult);
+            csvRows[csvRows.length - 1].push(interactionReason);
+            csvRows[csvRows.length - 1].push(interactionSubReason);
+            csvRows[csvRows.length - 1].push(journey);
+            previousConversationId = conversationId;
           }
           console.log(csvRows)
           await buildTableRows(csvRows)
