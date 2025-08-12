@@ -409,6 +409,7 @@
             csvRows[csvRows.length - 1].push(conversationId)
             csvRows[csvRows.length - 1].push(new Date(botReportingTurn.dateCreated).toLocaleString().replace(',', ' '))
             userInput = botReportingTurn.userInput
+            console.log(userInput)
             if (userInput === "\U0001f44d") {
               userInput = "*Thumbs Up*"
             }      
