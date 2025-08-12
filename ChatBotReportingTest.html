@@ -413,6 +413,7 @@
             let conversationAttributes = conversationData.participants[0].attributes
             console.log(conversationAttributes)
             if (conversationAttributes.AgentName) {
+              console.log('Agent Name: ' + conversationAttributes.AgentName)
               csvRows[csvRows.length - 1].push(conversationAttributes.AgentName);
             } else {
               csvRows[csvRows.length - 1].push(""); 
