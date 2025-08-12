@@ -410,10 +410,10 @@
             csvRows[csvRows.length - 1].push(new Date(botReportingTurn.dateCreated).toLocaleString().replace(',', ' '))
             userInput = botReportingTurn.userInput
             console.log(userInput)
-            if (userInput === "\U0001f44d") {
+            if (userInput === "\U0001f44d" || userInput === "ðŸ‘") {
               userInput = "*Thumbs Up*"
             }      
-            if (userInput === "\U0001f44e") {
+            if (userInput === "\U0001f44e" || userInput ==="ðŸ‘Ž") {
               userInput = "*Thumbs Down*"
             }
             csvRows[csvRows.length - 1].push(userInput)
