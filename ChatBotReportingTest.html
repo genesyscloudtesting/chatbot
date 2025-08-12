@@ -409,10 +409,10 @@
             csvRows[csvRows.length - 1].push(conversationId)
             csvRows[csvRows.length - 1].push(new Date(botReportingTurn.dateCreated).toLocaleString().replace(',', ' '))
             userInput = botReportingTurn.userInput
-            if (userInput = "\U0001f44d") {
+            if (userInput === "\U0001f44d") {
               userInput = "*Thumbs Up*"
             }      
-            if (userInput = "\U0001f44e") {
+            if (userInput === "\U0001f44e") {
               userInput = "*Thumbs Down*"
             }
             csvRows[csvRows.length - 1].push(userInput)
