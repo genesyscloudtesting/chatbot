@@ -380,6 +380,7 @@
             allBotReportingTurns = allBotReportingTurns.concat(botTurns.entities);  
           }
           console.log(allBotReportingTurns)
+          let previousConversationId = "";
           for (const botReportingTurn of allBotReportingTurns) {
             // add the column names to the first row
             if (csvRows.length === 0) {
@@ -416,7 +417,7 @@
             let interactionReason = "";
             let interactionSubReason= "";
             let journey = "";
-            if (conversationId != previousConversationID) {
+            if (conversationId != previousConversationId) {
               let conversationData = await convapi.getConversation(conversationId)
               let conversationAttributes = conversationData.participants[0].attributes
               if (conversationAttributes.AgentName) {
@@ -443,7 +444,7 @@
               csvRows[csvRows.length - 1].push(interactionReason);
               csvRows[csvRows.length - 1].push(interactionSubReason);
               csvRows[csvRows.length - 1].push(journey);
-              previousConversationID = conversationId;
+              previousConversationId = conversationId;
               await new Promise(resolve => setTimeout(resolve, 500)); // Pause script to avoid API rate limits
             }
           }
