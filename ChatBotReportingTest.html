@@ -411,7 +411,7 @@
             // Obtain conversation data
             let conversationData = await convapi.getConversation(botReportingTurn.conversation.id)
             let conversationAttributes = conversationData.participants[0].attributes
-            
+            console.log(conversationAttributes)
             if (conversationAttributes.AgentName) {
               csvRows[csvRows.length - 1].push(conversationAttributes.AgentName);
             } else {
@@ -442,8 +442,7 @@
             } else {
               csvRows[csvRows.length - 1].push(""); 
             }
-            await new Promise(resolve => setTimeout(resolve, 500));
-            console.log('Pause 0.5')
+            await new Promise(resolve => setTimeout(resolve, 500)); // Pause script to avoid API rate limits
           }
           console.log(csvRows)
           await buildTableRows(csvRows)
