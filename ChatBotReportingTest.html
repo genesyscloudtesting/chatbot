@@ -409,11 +409,10 @@
             csvRows[csvRows.length - 1].push(conversationId)
             csvRows[csvRows.length - 1].push(new Date(botReportingTurn.dateCreated).toLocaleString().replace(',', ' '))
             userInput = botReportingTurn.userInput
-            console.log(userInput)
-            if (userInput === "\U0001f44d" || userInput === "ðŸ‘") {
+            if (userInput === "\U0001f44d" || userInput === "\u{1F44D}") {
               userInput = "*Thumbs Up*"
             }      
-            if (userInput === "\U0001f44e" || userInput ==="ðŸ‘Ž") {
+            if (userInput === "\U0001f44e" || userInput ==="\u{1F44E}") {
               userInput = "*Thumbs Down*"
             }
             csvRows[csvRows.length - 1].push(userInput)
