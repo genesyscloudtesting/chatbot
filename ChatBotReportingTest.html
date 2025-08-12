@@ -380,6 +380,12 @@
             allBotReportingTurns = allBotReportingTurns.concat(botTurns.entities);  
           }
           console.log(allBotReportingTurns)
+          let agentName = "";
+          let agentEmail = "";
+          let interactionResult = "";
+          let interactionReason = "";
+          let interactionSubReason= "";
+          let journey = "";
           let previousConversationId = "";
           for (const botReportingTurn of allBotReportingTurns) {
             // add the column names to the first row
@@ -412,12 +418,12 @@
 
             // Obtain conversation data
             if (conversationId != previousConversationId) {
-              let agentName = "";
-              let agentEmail = "";
-              let interactionResult = "";
-              let interactionReason = "";
-              let interactionSubReason= "";
-              let journey = "";
+              agentName = "";
+              agentEmail = "";
+              interactionResult = "";
+              interactionReason = "";
+              interactionSubReason= "";
+              journey = "";
               let conversationData = await convapi.getConversation(conversationId)
               let conversationAttributes = conversationData.participants[0].attributes
               if (conversationAttributes.AgentName) {
