@@ -397,7 +397,8 @@
             }
             // add the data to the row
             csvRows.push([botReportingTurn.sessionId])
-            csvRows[csvRows.length - 1].push(botReportingTurn.conversation.id)
+            let conversationId = botReportingTurn.conversation.id
+            csvRows[csvRows.length - 1].push(conversationId)
             csvRows[csvRows.length - 1].push(new Date(botReportingTurn.dateCreated).toLocaleString().replace(',', ' '))
             csvRows[csvRows.length - 1].push(botReportingTurn.userInput)
             let listBotPrompts = []
@@ -409,41 +410,42 @@
             csvRows[csvRows.length - 1].push(strBotPrompts)
 
             // Obtain conversation data
-            let conversationData = await convapi.getConversation(botReportingTurn.conversation.id)
-            let conversationAttributes = conversationData.participants[0].attributes
-            console.log(conversationAttributes)
-            if (conversationAttributes.AgentName) {
-              console.log('Agent Name: ' + conversationAttributes.AgentName)
-              csvRows[csvRows.length - 1].push(conversationAttributes.AgentName);
-            } else {
-              csvRows[csvRows.length - 1].push(""); 
-            }
-            if (conversationAttributes.AgentEmail) {
-              csvRows[csvRows.length - 1].push(conversationAttributes.AgentEmail);
-            } else {
-              csvRows[csvRows.length - 1].push(""); 
-            }
-            if (conversationAttributes.InteractionResult) {
-              csvRows[csvRows.length - 1].push(conversationAttributes.InteractionResult);
-            } else {
-              csvRows[csvRows.length - 1].push(""); 
-            }
-            if (conversationAttributes.InteractionReason) {
-              csvRows[csvRows.length - 1].push(conversationAttributes.InteractionReason);
-            } else {
-              csvRows[csvRows.length - 1].push(""); 
-            }
-            if (conversationAttributes.InteractionSubReason) {
-              csvRows[csvRows.length - 1].push(conversationAttributes.InteractionSubReason);
-            } else {
-              csvRows[csvRows.length - 1].push(""); 
-            }
-            if (conversationAttributes.Journey) {
-              csvRows[csvRows.length - 1].push(conversationAttributes.Journey);
-            } else {
-              csvRows[csvRows.length - 1].push(""); 
-            }
-            await new Promise(resolve => setTimeout(resolve, 500)); // Pause script to avoid API rate limits
+            let agentName = "";
+            let agentEmail = "";
+            let interactionResult = "";
+            let interactionReason = "";
+            let interactionSubReason= "";
+            let journey = "";
+            if (conversationId != previousConversationID) {
+              let conversationData = await convapi.getConversation(conversationId)
+              let conversationAttributes = conversationData.participants[0].attributes
+              if (conversationAttributes.AgentName) {
+                agentName = conversationAttributes.AgentName;
+              }
+              if (conversationAttributes.AgentEmail) {
+                agentEmail = conversationAttributes.AgentEmail;
+              }
+              if (conversationAttributes.InteractionResult) {
+                interactionResult = conversationAttributes.InteractionResult;
+              }
+              if (conversationAttributes.InteractionReason) {
+                interactionReason = conversationAttributes.InteractionReason;
+              }
+              if (conversationAttributes.InteractionSubReason) {
+                interactionSubReason = conversationAttributes.InteractionSubReason;
+              }
+              if (conversationAttributes.Journey) {
+                journey = conversationAttributes.Journey;
+              }
+              csvRows[csvRows.length - 1].push(agentName);
+              csvRows[csvRows.length - 1].push(agentEmail);
+              csvRows[csvRows.length - 1].push(interactionResult);
+              csvRows[csvRows.length - 1].push(interactionReason);
+              csvRows[csvRows.length - 1].push(interactionSubReason);
+              csvRows[csvRows.length - 1].push(journey);
+              previousConversationID = conversationId;
+              await new Promise(resolve => setTimeout(resolve, 500)); // Pause script to avoid API rate limits
+          }
           }
           console.log(csvRows)
           await buildTableRows(csvRows)
