@@ -405,9 +405,17 @@
             // add the data to the row
             csvRows.push([botReportingTurn.sessionId])
             let conversationId = botReportingTurn.conversation.id
+            let userInput = ""
             csvRows[csvRows.length - 1].push(conversationId)
             csvRows[csvRows.length - 1].push(new Date(botReportingTurn.dateCreated).toLocaleString().replace(',', ' '))
-            csvRows[csvRows.length - 1].push(botReportingTurn.userInput)
+            userInput = botReportingTurn.userInput
+            if (userInput = "\U0001f44d") {
+              userInput = "*Thumbs Up*"
+            }      
+            if (userInput = "\U0001f44e") {
+              userInput = "*Thumbs Down*"
+            }
+            csvRows[csvRows.length - 1].push(userInput)
             let listBotPrompts = []
             let strBotPrompts = ""
             listBotPrompts = botReportingTurn.botPrompts
@@ -444,7 +452,7 @@
               if (conversationAttributes.Journey) {
                 journey = conversationAttributes.Journey;
               }
-              await new Promise(resolve => setTimeout(resolve, 500)); // Pause script to avoid API rate limits
+              await new Promise(resolve => setTimeout(resolve, 100)); // Pause script to avoid API rate limits
             }
             csvRows[csvRows.length - 1].push(agentName);
             csvRows[csvRows.length - 1].push(agentEmail);
