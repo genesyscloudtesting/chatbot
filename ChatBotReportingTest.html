@@ -445,7 +445,7 @@
               csvRows[csvRows.length - 1].push(journey);
               previousConversationID = conversationId;
               await new Promise(resolve => setTimeout(resolve, 500)); // Pause script to avoid API rate limits
-          }
+            }
           }
           console.log(csvRows)
           await buildTableRows(csvRows)
