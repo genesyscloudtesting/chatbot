@@ -132,8 +132,10 @@
         let maxDate = today.toISOString().split('T')[0]
         let minDate = tenDaysAgo.toISOString().split('T')[0]
         
-        datepicker.setAttribute('minDate', minDate)
-        datepicker.setAttribute('maxDate', maxDate)
+        //datepicker.setAttribute('minDate', minDate)
+        //datepicker.setAttribute('maxDate', maxDate)
+        datepicker.min = minDate
+        datepicker.max = maxDate
       }
 
       function last10days() {
