@@ -64,12 +64,6 @@
         <gux-dropdown filter-type="starts-with" placeholder="Select Bot Flow" id="botFlowId" style="display: block; width: 250px; padding: 8px">
           <gux-listbox id="botFlowIdList" aria-label="Bot Flow Name"> </gux-listbox>
         </gux-dropdown>
-        <!-- <gux-dropdown filter-type="starts-with" placeholder="Select Version (Default latest)" id="formIdVersion" style="display: block; width: 250px; padding: 8px">
-          <gux-listbox id="formIdListVersions" aria-label="Form Version"> </gux-listbox>
-        </gux-dropdown>
-        <gux-dropdown filter-type="starts-with" placeholder="Select Group(optional)" id="groupId" style="display: block; width: 250px; padding: 8px">
-          <gux-listbox id="groupIdList" aria-label="Group Name"> </gux-listbox>
-        </gux-dropdown> -->
       </div>
       <div id="spinner" style="justify-self: center; padding: 8px; display: none">
         <gux-radial-loading id="loading" class="loading" screenreader-text="Loading..."></gux-radial-loading>
@@ -94,8 +88,6 @@
 
       let platformClient = require('platformClient')
       const client = platformClient.ApiClient.instance
-      //const qapi = new platformClient.QualityApi()
-      //const gapi = new platformClient.GroupsApi()
       const analyticsapi = new platformClient.AnalyticsApi()
       const architectapi = new platformClient.ArchitectApi()
       const convapi = new platformClient.ConversationsApi()
@@ -114,7 +106,7 @@
           console.log('%cLogging in to Genesys Cloud', 'color: green')
           await client.loginPKCEGrant(gc_clientId, gc_redirectUrl, {})
           getUTCOffset()
-          thisMonth()
+          setDatePickerRange()
           getBotFlows()
           ensurePageScroll()
         } catch (err) {
@@ -130,12 +122,45 @@
       //  document.getElementById('datepicker').value = `${aMonthAgo.getFullYear()}-${String(aMonthAgo.getMonth() + 1).padStart(2, '0')}-${String(aMonthAgo.getDate()).padStart(2,'0')}/${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
       //}
 
+      function setDatePickerRange() {
+        let datepicker = document.getElementById('datepicker')
+        let today = new Date()
+        let tenDaysAgo = new Date()
+        tenDaysAgo.setDate(today.getDate() - 10)
+        
+        // Format dates as YYYY-MM-DD
+        let maxDate = today.toISOString().split('T')[0]
+        let minDate = tenDaysAgo.toISOString().split('T')[0]
+        
+        datepicker.setAttribute('min-date', minDate)
+        datepicker.setAttribute('max-date', maxDate)
+
+      }
+
       function last10days() {
         let today = new Date()
         let tenDaysAgo = new Date()
         tenDaysAgo.setDate(tenDaysAgo.getDate() - 10)
         // prettier-ignore
         document.getElementById('datepicker').value = `${tenDaysAgo.getFullYear()}-${String(tenDaysAgo.getMonth() + 1).padStart(2, '0')}-${String(tenDaysAgo.getDate()).padStart(2,'0')}/${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+      }
+
+      function thisWeek() {
+        let today = new Date()
+        
+        // Get the start of the week (Monday)
+        let startOfWeek = new Date(today)
+        let dayOfWeek = today.getDay()
+        let daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1 // Handle Sunday as day 0
+        startOfWeek.setDate(today.getDate() - daysToSubtract)
+        
+        // Get the end of the week (Sunday)
+        let endOfWeek = new Date(startOfWeek)
+        endOfWeek.setDate(startOfWeek.getDate() + 6)
+        
+        // Format the date range
+        document.getElementById('datepicker').value = 
+            `${startOfWeek.getFullYear()}-${String(startOfWeek.getMonth() + 1).padStart(2, '0')}-${String(startOfWeek.getDate()).padStart(2, '0')}/${endOfWeek.getFullYear()}-${String(endOfWeek.getMonth() + 1).padStart(2, '0')}-${String(endOfWeek.getDate()).padStart(2, '0')}`
       }
 
       function thisMonth() {
@@ -204,9 +229,6 @@
         document.getElementById('download').style.display = 'none'
         csvRows = []
         document.getElementById('botFlowId').value = ''
-        //document.getElementById('groupId').value = ''
-        //document.getElementById('formIdVersion').value = ''
-        //document.getElementById('formIdListVersions').innerHTML = ''
       }
 
       function notification(type, message) {
@@ -232,6 +254,9 @@
       
       // dynamic table creation
       async function buildTableRows(rows) {
+          let previousConversationId = ""
+          let conversationId = ""
+          let tableRowColour = ""
           for (const row of rows) {
               let tableBody = document.getElementById('tableBody')
               if (!tableBody) {
@@ -269,6 +294,25 @@
               if (tableBody) {
                   // add data to the row
                   let tr = document.createElement('tr')
+                  
+                  conversationId = row[1]
+                  tr.style.background = 'none'
+                  if (conversationId != previousConversationId) {
+                    if (tableRowColour === 'white' ) {
+                      tableRowColour = 'grey'
+                    }
+                    else {
+                      tableRowColour = 'white'
+                    }
+                  }
+                  if (tableRowColour === 'grey') {
+                    tr.style.backgroundColor = '#E6E8E9' // set background colour grey  
+                  }
+                  else {
+                    tr.style.backgroundColor = '#FFFFFF' // set background colour white 
+                  }
+                  previousConversationId = conversationId
+
                   for (const item of row) {
                       let column = document.createElement('td')
                       column.style.textWrap = 'auto'
@@ -278,21 +322,7 @@
                   tableBody.appendChild(tr)
               }
           }
-      }
-
-      // used to update the versions dropdown
-      //let currentVersion = ''
-      //window.addEventListener('click', function (e) {
-      //  if (e.target.id.includes('formIdOption')) {
-      //    if (document.getElementById('formId').value === currentVersion) {
-      //      return
-      //    }
-      //    currentVersion = document.getElementById('formId').value
-      //    console.log('Form ID: ', currentVersion)
-      //   getEvaluationFormVersions()
-      //  }
-      //})
-      
+      }   
       
       async function getBotFlows() {
         let pageNumber = 1
@@ -340,23 +370,12 @@
           notification('Warning', 'Please select a Bot Flow')
           return
         }
-        //if (document.getElementById('groupId').value) {
-        //  groupMembers = await getGroupMembers()
-        //}
         document.getElementById('spinner').style.display = 'block'
         let pageNumber = 1
         try {
           let botFlowIdSelected = document.getElementById('botFlowId').value
-          //if (document.getElementById('formIdListVersions').value) {
-          //  console.log('selected version')
-          //  formIdSelected = document.getElementById('formIdListVersions').value
-          //}
-          console.log(botFlowIdSelected)
-          //const form = await qapi.getQualityFormsEvaluation(formIdSelected)
+          console.log('Bot Flow ID Selected: ' + botFlowIdSelected)
           
-          //console.log('Form: ', form)
-          //const evaluations = await getEvaluations(pageNumber, formIdSelected)
-          //console.log('Evaluations: ', evaluations)
           let opts = { 
             'pageSize': "250",
             'interval': `${document.getElementById('datepicker').value.split('/')[0]}T00:00:00${document.getElementById('timeZone').value}/${document.getElementById('datepicker').value.split('/')[1]}T23:59:59${document.getElementById('timeZone').value}` // String | Date range filter based on the date the individual resources were completed. UTC is the default if no TZ is supplied, however alternate timezones can be used e.g: '2022-11-22T09:11:11.111+08:00/2022-11-30T07:17:44.586-07'. . Intervals are represented as an ISO-8601 string. For example: YYYY-MM-DDThh:mm:ss/YYYY-MM-DDThh:mm:ss
@@ -379,7 +398,14 @@
             botTurns = await analyticsapi.getAnalyticsBotflowDivisionsReportingturns(botFlowIdSelected, opts);
             allBotReportingTurns = allBotReportingTurns.concat(botTurns.entities);  
           }
-          console.log(allBotReportingTurns)
+          // console.log('Bot Reporting Turns: ' + allBotReportingTurns)
+          let agentName = "";
+          let agentEmail = "";
+          let interactionResult = "";
+          let interactionReason = "";
+          let interactionSubReason= "";
+          let journey = "";
+          let previousConversationId = "";
           for (const botReportingTurn of allBotReportingTurns) {
             // add the column names to the first row
             if (csvRows.length === 0) {
@@ -388,15 +414,77 @@
               csvRows[0].push('Timestamp')
               csvRows[0].push('Utterance')
               csvRows[0].push('Bot Response')
+              csvRows[0].push('Agent Name')
+              csvRows[0].push('Agent Email')
+              csvRows[0].push('Interaction Result')
+              csvRows[0].push('Interaction Reason')
+              csvRows[0].push('Interaction Sub Reason')
+              csvRows[0].push('Journey')
             }
             // add the data to the row
             csvRows.push([botReportingTurn.sessionId])
-            csvRows[csvRows.length - 1].push(botReportingTurn.conversation.id)
+            let conversationId = botReportingTurn.conversation.id
+            let userInput = ""
+            csvRows[csvRows.length - 1].push(conversationId)
             csvRows[csvRows.length - 1].push(new Date(botReportingTurn.dateCreated).toLocaleString().replace(',', ' '))
-            csvRows[csvRows.length - 1].push(botReportingTurn.userInput)
-            csvRows[csvRows.length - 1].push(botReportingTurn.botPrompts)
+            userInput = botReportingTurn.userInput
+            if (userInput === "\U0001f44d" || userInput === "\u{1F44D}") {
+              userInput = "*Thumbs Up*"
+            }      
+            if (userInput === "\U0001f44e" || userInput ==="\u{1F44E}") {
+              userInput = "*Thumbs Down*"
+            }
+            csvRows[csvRows.length - 1].push(userInput)
+            let listBotPrompts = []
+            let strBotPrompts = ""
+            listBotPrompts = botReportingTurn.botPrompts
+            for (let i = 0; i < listBotPrompts.length; i++) {
+              strBotPrompts = strBotPrompts + listBotPrompts[i] + "\n"
+            }
+            csvRows[csvRows.length - 1].push(strBotPrompts)
+
+            // Obtain conversation data
+            if (conversationId != previousConversationId) {
+              agentName = "";
+              agentEmail = "";
+              interactionResult = "";
+              interactionReason = "";
+              interactionSubReason= "";
+              journey = "";
+              let conversationData = await convapi.getConversation(conversationId)
+              let conversationAttributes = conversationData.participants[0].attributes
+              if (conversationAttributes.AgentName) {
+                agentName = conversationAttributes.AgentName;
+              }
+              if (conversationAttributes.AgentEmail) {
+                agentEmail = conversationAttributes.AgentEmail;
+              }
+              if (conversationAttributes.InteractionResult) {
+                interactionResult = conversationAttributes.InteractionResult;
+              }
+              if (conversationAttributes.InteractionReason) {
+                interactionReason = conversationAttributes.InteractionReason;
+              }
+              if (conversationAttributes.InteractionSubReason) {
+                interactionSubReason = conversationAttributes.InteractionSubReason;
+              }
+              if (conversationAttributes.Journey) {
+                journey = conversationAttributes.Journey;
+              }
+              await new Promise(resolve => setTimeout(resolve, 100)); // Pause script to avoid API rate limits
+            }
+            csvRows[csvRows.length - 1].push(agentName);
+            csvRows[csvRows.length - 1].push(agentEmail);
+            csvRows[csvRows.length - 1].push(interactionResult);
+            csvRows[csvRows.length - 1].push(interactionReason);
+            csvRows[csvRows.length - 1].push(interactionSubReason);
+            csvRows[csvRows.length - 1].push(journey);
+            previousConversationId = conversationId;
           }
           console.log(csvRows)
+          if (csvRows.length === 0) {
+            csvRows.push(['No data found'])
+          }
           await buildTableRows(csvRows)
           ensurePageScroll()
           document.getElementById('spinner').style.display = 'none'
@@ -415,114 +503,6 @@
         }
         window.open(`https://apps.${gc_region}/directory/#/analytics/interactions/${conversationId}/admin/details`, '_blank')
         return
-      }
-
-      async function getEvaluations(pageNumber, value) {
-        let evaluations = await qapi.postAnalyticsEvaluationsAggregatesQuery({
-          // prettier-ignore
-          interval: `${document.getElementById('datepicker').value.split('/')[0]}T00:00:00${document.getElementById('timeZone').value}/${document.getElementById('datepicker').value.split('/')[1]}T23:59:59${document.getElementById('timeZone').value}`,
-          groupBy: ['evaluationId', 'conversationId'],
-          filter: {
-            type: 'and',
-            predicates: [
-              {
-                dimension: 'formId',
-                operator: 'matches',
-                value: value,
-              },
-            ],
-          },
-          metrics: ['nEvaluations'],
-        })
-
-        return evaluations
-      }
-
-      async function getEvaluationForms() {
-        let pageNumber = 1
-        const forms = await getEvaluationFormsPage(pageNumber)
-        if (forms.total > 100) {
-          while (pageNumber < Math.ceil(forms.total / 100)) {
-            pageNumber++
-            const nextConversations = await getEvaluationFormsPage(pageNumber)
-            forms.entities = forms.entities.concat(nextConversations.entities)
-          }
-        }
-
-        console.log('Forms: ', forms)
-        formIdList = forms.entities
-
-        let drop = document.getElementById('formIdList')
-        for (const form of forms.entities) {
-          if (form.publishedVersions) {
-            let option = document.createElement('gux-option')
-            option.id = 'formIdOption'
-            option.value = form.publishedVersions.entities[0].id
-            option.innerHTML = form.publishedVersions.entities[0].name
-            drop.appendChild(option)
-          }
-        }
-      }
-
-      async function getEvaluationFormsPage(pageNumber) {
-        let forms = await qapi.getQualityFormsEvaluations({
-          pageSize: 100,
-          pageNumber: pageNumber,
-          sortOrder: 'asc',
-          expand: ['publishHistory'],
-        })
-        return forms
-      }
-
-      async function getEvaluationFormVersions() {
-        if (formIdList.length === 0) {
-          return
-        }
-        let drop = document.getElementById('formIdListVersions')
-        drop.innerHTML = ''
-        for (const form of formIdList) {
-          const found = form?.publishedVersions?.entities.find((found) => found.id === document.getElementById('formId').value)
-          if (found) {
-            let counter = 0
-            for (const version of form.publishedVersions.entities) {
-              let option = document.createElement('gux-option')
-              option.id = 'formIdOption'
-              option.value = version.id
-              option.innerHTML = `${counter} | ${new Date(version.modifiedDate).toLocaleString().replace(',', ' ')}`
-              drop.appendChild(option)
-              counter++
-            }
-            return
-          }
-        }
-      }
-
-      async function getGroups() {
-        let groups = await gapi.getGroups({
-          pageSize: 200,
-          pageNumber: 1,
-          sortOrder: 'ascending',
-        })
-        console.log('Groups: ', groups)
-
-        let drop = document.getElementById('groupIdList')
-        for (const group of groups.entities) {
-          let option = document.createElement('gux-option')
-          option.value = group.id
-          option.innerHTML = group.name
-          drop.appendChild(option)
-        }
-      }
-
-      async function getGroupMembers() {
-        let groupId = document.getElementById('groupId').value
-        let members = await gapi.getGroupMembers(groupId, {
-          pageSize: 200,
-          pageNumber: 1,
-          sortOrder: 'ascending',
-        })
-        console.log('Members: ', members)
-        return members
       }
     </script>
   </body>
