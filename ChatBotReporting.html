@@ -54,7 +54,7 @@
           </gux-listbox>
         </gux-dropdown>
         <gux-datepicker id="datepicker" style="padding: 8px" mode="range" value="" number-of-months="2"></gux-datepicker>
-        <gux-button style="padding: 8px" accent="secondary" onclick="thisWeek()">This Week</gux-button>
+        <gux-button style="padding: 8px" accent="secondary" onclick="lastWeek()">Last Week</gux-button>
         <gux-button style="padding: 8px" accent="secondary" onclick="last10days()">Last 10 Days</gux-button>
         <gux-button style="padding: 8px" accent="primary" onclick="getData()">Search</gux-button>
         <gux-button style="padding: 8px" accent="secondary" onclick="clearData()">Clear</gux-button>
@@ -144,6 +144,28 @@
         tenDaysAgo.setDate(tenDaysAgo.getDate() - 10)
         // prettier-ignore
         document.getElementById('datepicker').value = `${tenDaysAgo.getFullYear()}-${String(tenDaysAgo.getMonth() + 1).padStart(2, '0')}-${String(tenDaysAgo.getDate()).padStart(2,'0')}/${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+      }
+
+      function lastWeek() {
+        let today = new Date()
+        
+        // Get the start of this week (Monday)
+        let startOfThisWeek = new Date(today)
+        let dayOfWeek = today.getDay()
+        let daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1 // Handle Sunday as day 0
+        startOfThisWeek.setDate(today.getDate() - daysToSubtract)
+        
+        // Get the start of last week (subtract 7 days from start of this week)
+        let startOfLastWeek = new Date(startOfThisWeek)
+        startOfLastWeek.setDate(startOfThisWeek.getDate() - 7)
+        
+        // Get the end of last week (Sunday - 6 days after Monday)
+        let endOfLastWeek = new Date(startOfLastWeek)
+        endOfLastWeek.setDate(startOfLastWeek.getDate() + 6)
+        
+        // Format the date range
+        document.getElementById('datepicker').value = 
+            `${startOfLastWeek.getFullYear()}-${String(startOfLastWeek.getMonth() + 1).padStart(2, '0')}-${String(startOfLastWeek.getDate()).padStart(2, '0')}/${endOfLastWeek.getFullYear()}-${String(endOfLastWeek.getMonth() + 1).padStart(2, '0')}-${String(endOfLastWeek.getDate()).padStart(2, '0')}`
       }
 
       function thisWeek() {
