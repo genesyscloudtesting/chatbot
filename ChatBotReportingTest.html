@@ -34,7 +34,7 @@
   <body onload="start()">
     <div class="content-wrapper">
       <div><h2>Chat Bot Reporting</h2></div>
-      <div><h4>Note: You can only retrieve the past 10 days of bot conversations</h4></div>
+      <div><h4>Note: You can only retrieve the past 10 days of bot conversations.</h4></div>
       <div style="display: inline-flex">
         <gux-dropdown filter-type="starts-with" placeholder="UTC-00:00" id="timeZone" style="width: 150px; padding: 8px">
           <gux-listbox aria-label="Time Zone">
@@ -415,8 +415,14 @@
               csvRows[0].push('Timestamp')
               csvRows[0].push('Utterance')
               csvRows[0].push('Bot Response')
-              csvRows[0].push('Agent Name')
-              csvRows[0].push('Agent Email')
+              if (botFlowIdSelected === '1babddc4-ef72-43c6-a0ef-4585e7a5a760') {
+                csvRows[0].push('Agent Name')
+                csvRows[0].push('Agent Email')  
+              }
+              else {
+                csvRows[0].push('Customer Name')
+                csvRows[0].push('Customer Email')
+              }
               csvRows[0].push('Interaction Result')
               csvRows[0].push('Interaction Reason')
               csvRows[0].push('Interaction Sub Reason')
@@ -446,8 +452,8 @@
 
             // Obtain conversation data
             if (conversationId != previousConversationId) {
-              agentName = "";
-              agentEmail = "";
+              name = "";
+              email = "";
               interactionResult = "";
               interactionReason = "";
               interactionSubReason= "";
@@ -455,10 +461,16 @@
               let conversationData = await convapi.getConversation(conversationId)
               let conversationAttributes = conversationData.participants[0].attributes
               if (conversationAttributes.AgentName) {
-                agentName = conversationAttributes.AgentName;
+                name = conversationAttributes.AgentName;
               }
               if (conversationAttributes.AgentEmail) {
-                agentEmail = conversationAttributes.AgentEmail;
+                email = conversationAttributes.AgentEmail;
+              }
+              if (conversationAttributes.IntentConnectEmail) {
+                email = conversationAttributes.IntentConnectEmail;
+              }
+              if (conversationAttributes.IntentConnectFirstName && conversationAttributes.IntentConnectLastName) {
+                name = conversationAttributes.IntentConnectFirstName + " " + conversationAttributes.IntentConnectLastName;
               }
               if (conversationAttributes.InteractionResult) {
                 interactionResult = conversationAttributes.InteractionResult;
@@ -474,8 +486,8 @@
               }
               await new Promise(resolve => setTimeout(resolve, 100)); // Pause script to avoid API rate limits
             }
-            csvRows[csvRows.length - 1].push(agentName);
-            csvRows[csvRows.length - 1].push(agentEmail);
+            csvRows[csvRows.length - 1].push(name);
+            csvRows[csvRows.length - 1].push(email);
             csvRows[csvRows.length - 1].push(interactionResult);
             csvRows[csvRows.length - 1].push(interactionReason);
             csvRows[csvRows.length - 1].push(interactionSubReason);
