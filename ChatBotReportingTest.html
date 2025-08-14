@@ -126,6 +126,7 @@
       function setDatePickerRange() {
         let datepicker = document.getElementById('datepicker')
         let today = new Date()
+        console.log('today date:' + today)
         let tenDaysAgo = new Date()
         tenDaysAgo.setDate(today.getDate() - 10)
         
