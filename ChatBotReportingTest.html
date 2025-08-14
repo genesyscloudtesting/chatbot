@@ -114,7 +114,7 @@
           console.log('%cLogging in to Genesys Cloud', 'color: green')
           await client.loginPKCEGrant(gc_clientId, gc_redirectUrl, {})
           getUTCOffset()
-          thisMonth()
+          thisWeek()
           getBotFlows()
           ensurePageScroll()
         } catch (err) {
@@ -154,7 +154,7 @@
         // Format the date range
         document.getElementById('datepicker').value = 
             `${startOfWeek.getFullYear()}-${String(startOfWeek.getMonth() + 1).padStart(2, '0')}-${String(startOfWeek.getDate()).padStart(2, '0')}/${endOfWeek.getFullYear()}-${String(endOfWeek.getMonth() + 1).padStart(2, '0')}-${String(endOfWeek.getDate()).padStart(2, '0')}`
-    }
+      }
 
       function thisMonth() {
         let today = new Date()
@@ -250,6 +250,9 @@
       
       // dynamic table creation
       async function buildTableRows(rows) {
+          let previousConversationId = ""
+          let conversationId = ""
+          let tableRowColour = ""
           for (const row of rows) {
               let tableBody = document.getElementById('tableBody')
               if (!tableBody) {
@@ -287,6 +290,24 @@
               if (tableBody) {
                   // add data to the row
                   let tr = document.createElement('tr')
+                  
+                  conversationId = row[1]
+                  if (conversationId != previousConversationId) {
+                    if (tableRowColour === 'white' ) {
+                      tableRowColour = 'grey'
+                    }
+                    else {
+                      tableRowColour = 'white'
+                    }
+                  }
+                  if (tableRowColour === 'grey') {
+                    tr.style.backgroundColor = '#E6E8E9' // set background colour grey  
+                  }
+                  else {
+                    tr.style.backgroundColor = '#FFFFFF' // set background colour white 
+                  }
+                  previousConversationId = conversationId
+
                   for (const item of row) {
                       let column = document.createElement('td')
                       column.style.textWrap = 'auto'
