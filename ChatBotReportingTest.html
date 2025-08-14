@@ -492,7 +492,7 @@
               if (conversationAttributes.Journey) {
                 journey = conversationAttributes.Journey;
               }
-              await new Promise(resolve => setTimeout(resolve, 50)); // Pause script to avoid API rate limits
+              await new Promise(resolve => setTimeout(resolve, 100)); // Pause script to avoid API rate limits
             }
             csvRows[csvRows.length - 1].push(agentName);
             csvRows[csvRows.length - 1].push(agentEmail);
