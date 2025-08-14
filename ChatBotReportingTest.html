@@ -482,6 +482,9 @@
             previousConversationId = conversationId;
           }
           console.log(csvRows)
+          if (csvRows.length === 0) {
+            csvRows.push(['No data found'])
+          }
           await buildTableRows(csvRows)
           ensurePageScroll()
           document.getElementById('spinner').style.display = 'none'
