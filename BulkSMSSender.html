@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel File Viewer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .file-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            margin: 20px 0;
+        }
+        .file-input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        .file-input-button {
+            background: #4285f4;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            display: inline-block;
+            transition: background-color 0.3s;
+        }
+        .file-input-button:hover {
+            background: #3367d6;
+        }
+        .file-info {
+            margin-top: 15px;
+            padding: 10px;
+            background: #e8f5e8;
+            border-radius: 5px;
+            border-left: 4px solid #28a745;
+        }
+        .filters-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #fff3cd;
+            border-radius: 5px;
+            border: 1px solid #ffeaa7;
+        }
+        .filter-controls {
+            margin-bottom: 15px;
+        }
+        .filter-group {
+            display: inline-block;
+            margin: 8px;
+            vertical-align: top;
+        }
+        .filter-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        .filter-group select {
+            min-width: 120px;
+            max-width: 200px;
+        }
+        button {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #218838;
+        }
+        button.secondary {
+            background: #6c757d;
+        }
+        button.secondary:hover {
+            background: #545b62;
+        }
+        button.export {
+            background: #17a2b8;
+        }
+        button.export:hover {
+            background: #138496;
+        }
+        select, input {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            font-size: 14px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        tr:hover {
+            background-color: #f0f8ff;
+        }
+        .table-container {
+            max-height: 600px;
+            overflow: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+        .status {
+            padding: 12px;
+            margin: 15px 0;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #cce8ff;
+            color: #004085;
+            border: 1px solid #b3d7ff;
+        }
+        .data-info {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .search-box {
+            margin: 10px 5px;
+            padding: 8px;
+            width: 250px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        .empty-state h3 {
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Excel File Viewer & Filter</h1>
+        
+        <div class="file-section">
+            <h3>Select Excel File</h3>
+            <p>Choose an Excel file (.xlsx or .xls) from your computer</p>
+            <div class="file-input-wrapper">
+                <input type="file" id="fileInput" class="file-input" accept=".xlsx,.xls,.csv" />
+                <div class="file-input-button">
+                    📁 Choose Excel File
+                </div>
+            </div>
+            <div id="fileInfo" style="display: none;"></div>
+        </div>
+
+        <div class="filters-section" style="display:none;" id="filtersSection">
+            <h3>🔍 Filter Data</h3>
+            <div class="filter-controls">
+                <input type="text" id="searchBox" class="search-box" placeholder="Search across all columns..." />
+                <div id="filterControls"></div>
+            </div>
+            <div>
+                <button onclick="applyFilters()">Apply Filters</button>
+                <button onclick="clearFilters()" class="secondary">Clear All</button>
+                <button onclick="exportFilteredData()" class="export">Export Filtered Data</button>
+            </div>
+        </div>
+
+        <div id="dataSection" style="display:none;">
+            <h3>📋 Spreadsheet Data</h3>
+            <div id="dataInfo" class="data-info"></div>
+            <div class="table-container">
+                <table id="dataTable"></table>
+            </div>
+        </div>
+
+        <div id="status"></div>
+    </div>
+
+    <script>
+        let originalData = [];
+        let filteredData = [];
+        let headers = [];
+        let currentFileName = '';
+
+        // File input handling
+        document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            currentFileName = file.name;
+            showStatus('Loading file...', 'info');
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    // Get the first sheet
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                    
+                    if (jsonData.length > 0) {
+                        headers = jsonData[0].map(header => header || 'Column');
+                        originalData = jsonData.slice(1).filter(row => 
+                            row.some(cell => cell !== null && cell !== undefined && cell !== '')
+                        );
+                        filteredData = [...originalData];
+                        
+                        displayFile();
+                        displayData();
+                        createFilterControls();
+                        
+                        document.getElementById('filtersSection').style.display = 'block';
+                        document.getElementById('dataSection').style.display = 'block';
+                        
+                        showStatus(`Successfully loaded "${file.name}" with ${originalData.length} rows and ${headers.length} columns`, 'success');
+                    } else {
+                        showStatus('The selected file appears to be empty', 'error');
+                    }
+                } catch (error) {
+                    showStatus('Error reading file: ' + error.message, 'error');
+                    console.error('File reading error:', error);
+                }
+            };
+            
+            reader.onerror = function() {
+                showStatus('Error reading file', 'error');
+            };
+            
+            reader.readAsArrayBuffer(file);
+        }
+
+        function displayFile() {
+            const fileInfo = document.getElementById('fileInfo');
+            fileInfo.innerHTML = `
+                <div class="file-info">
+                    <strong>📄 ${currentFileName}</strong><br>
+                    <small>File loaded successfully</small>
+                </div>
+            `;
+            fileInfo.style.display = 'block';
+        }
+
+        function displayData() {
+            const table = document.getElementById('dataTable');
+            const dataInfo = document.getElementById('dataInfo');
+            
+            // Update info
+            dataInfo.innerHTML = `
+                <strong>Total Rows:</strong> ${originalData.length} | 
+                <strong>Showing:</strong> ${filteredData.length} rows | 
+                <strong>Columns:</strong> ${headers.length}
+            `;
+            
+            // Create table
+            if (filteredData.length === 0) {
+                table.innerHTML = `
+                    <div class="empty-state">
+                        <h3>No data matches your filters</h3>
+                        <p>Try adjusting your filter criteria</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '<thead><tr>';
+            headers.forEach((header, index) => {
+                html += `<th>${header} <small>(Col ${index + 1})</small></th>`;
+            });
+            html += '</tr></thead><tbody>';
+            
+            filteredData.forEach((row, rowIndex) => {
+                html += '<tr>';
+                headers.forEach((_, colIndex) => {
+                    const cellValue = row[colIndex];
+                    const displayValue = cellValue !== null && cellValue !== undefined ? cellValue : '';
+                    html += `<td>${displayValue}</td>`;
+                });
+                html += '</tr>';
+            });
+            
+            html += '</tbody>';
+            table.innerHTML = html;
+        }
+
+        function createFilterControls() {
+            const filterControls = document.getElementById('filterControls');
+            filterControls.innerHTML = '';
+            
+            headers.forEach((header, index) => {
+                const filterGroup = document.createElement('div');
+                filterGroup.className = 'filter-group';
+                
+                const label = document.createElement('label');
+                label.textContent = header;
+                
+                const select = document.createElement('select');
+                select.id = `filter-${index}`;
+                select.innerHTML = '<option value="">All values</option>';
+                
+                // Get unique values for this column
+                const uniqueValues = [...new Set(
+                    originalData
+                        .map(row => row[index])
+                        .filter(val => val !== null && val !== undefined && val !== '')
+                )];
+                
+                uniqueValues.sort((a, b) => {
+                    if (typeof a === 'string' && typeof b === 'string') {
+                        return a.localeCompare(b);
+                    }
+                    return a < b ? -1 : a > b ? 1 : 0;
+                });
+                
+                uniqueValues.forEach(value => {
+                    const option = document.createElement('option');
+                    option.value = value;
+                    option.textContent = String(value).length > 30 ? 
+                        String(value).substring(0, 30) + '...' : value;
+                    select.appendChild(option);
+                });
+                
+                filterGroup.appendChild(label);
+                filterGroup.appendChild(select);
+                filterControls.appendChild(filterGroup);
+            });
+
+            // Add search box functionality
+            document.getElementById('searchBox').addEventListener('input', applyFilters);
+        }
+
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+            
+            filteredData = originalData.filter(row => {
+                // Apply column filters
+                const columnMatch = headers.every((header, index) => {
+                    const filterSelect = document.getElementById(`filter-${index}`);
+                    const filterValue = filterSelect ? filterSelect.value : '';
+                    return !filterValue || String(row[index]) === filterValue;
+                });
+                
+                // Apply search filter
+                const searchMatch = !searchTerm || row.some(cell => 
+                    String(cell || '').toLowerCase().includes(searchTerm)
+                );
+                
+                return columnMatch && searchMatch;
+            });
+            
+            displayData();
+            showStatus(`Showing ${filteredData.length} of ${originalData.length} rows`, 'info');
+        }
+
+        function clearFilters() {
+            // Clear column filters
+            headers.forEach((header, index) => {
+                const filterSelect = document.getElementById(`filter-${index}`);
+                if (filterSelect) filterSelect.value = '';
+            });
+            
+            // Clear search box
+            document.getElementById('searchBox').value = '';
+            
+            filteredData = [...originalData];
+            displayData();
+            showStatus('All filters cleared', 'success');
+        }
+
+        function exportFilteredData() {
+            if (filteredData.length === 0) {
+                showStatus('No data to export', 'error');
+                return;
+            }
+            
+            try {
+                const ws = XLSX.utils.aoa_to_sheet([headers, ...filteredData]);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Filtered Data');
+                
+                const fileName = currentFileName.replace(/\.[^/.]+$/, '') + '_filtered.xlsx';
+                XLSX.writeFile(wb, fileName);
+                
+                showStatus(`Exported ${filteredData.length} rows to "${fileName}"`, 'success');
+            } catch (error) {
+                showStatus('Error exporting data: ' + error.message, 'error');
+            }
+        }
+
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+            
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 5000);
+        }
+
+        // Initialize
+        window.onload = function() {
+            showStatus('Welcome! Select an Excel file to get started.', 'info');
+        };
+    </script>
+</body>
+</html>
