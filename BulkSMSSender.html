@@ -101,6 +101,16 @@
             border-radius: 4px;
             font-size: 14px;
         }
+        .sms-control-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            resize: vertical;
+            min-height: 80px;
+            font-family: Arial, sans-serif;
+        }
         .template-preview {
             margin-top: 10px;
             padding: 10px;
@@ -253,6 +263,11 @@
             word-wrap: break-word;
             white-space: pre-wrap;
         }
+        .additional-numbers-info {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -320,6 +335,13 @@
                     <select id="templateSelect">
                         <option value="">Select Template...</option>
                     </select>
+                </div>
+                <div class="sms-control-group">
+                    <label for="additionalNumbers">Additional To Numbers</label>
+                    <textarea id="additionalNumbers" placeholder="Enter additional mobile numbers (one per line)&#10;Example:&#10;0412345678&#10;0498765432"></textarea>
+                    <div class="additional-numbers-info">
+                        Enter additional mobile numbers to include in the SMS send (one per line)
+                    </div>
                 </div>
             </div>
             <div class="template-preview" id="templatePreview">
@@ -439,7 +461,7 @@
             );
             
             if (mobileColumnIndex === -1) {
-                showStatus('Warning: No mobile/phone column detected. SMS functionality may be limited.', 'error');
+                showStatus('Warning: No mobile/phone column detected. You can still use additional numbers.', 'error');
             }
         }
 
@@ -462,6 +484,13 @@
                     generateSMSTable();
                 }
             });
+            document.getElementById('additionalNumbers').addEventListener('input', function() {
+                const fromValue = document.getElementById('fromSelect').value;
+                const templateValue = document.getElementById('templateSelect').value;
+                if (fromValue && templateValue) {
+                    generateSMSTable();
+                }
+            });
         }
 
         function updateTemplatePreview() {
@@ -477,6 +506,16 @@
             }
         }
 
+        function getAdditionalNumbers() {
+            const additionalText = document.getElementById('additionalNumbers').value.trim();
+            if (!additionalText) return [];
+            
+            return additionalText
+                .split('\n')
+                .map(number => number.trim())
+                .filter(number => number && number.length > 0);
+        }
+
         function generateSMSTable() {
             const fromValue = document.getElementById('fromSelect').value;
             const templateName = document.getElementById('templateSelect').value;
@@ -490,47 +529,62 @@
                 showStatus('Please select an SMS template', 'error');
                 return;
             }
-            
-            if (mobileColumnIndex === -1) {
-                showStatus('No mobile column found in the spreadsheet', 'error');
-                return;
-            }
-            
-            if (filteredData.length === 0) {
-                showStatus('No data available to generate SMS table', 'error');
-                return;
-            }
 
             const templateText = smsTemplates[templateName];
             const smsTable = document.getElementById('smsTable');
             const smsTableContainer = document.getElementById('smsTableContainer');
             
             // Create table header
-            let html = '<thead><tr><th>From</th><th>To</th><th>Text</th></tr></thead><tbody>';
+            let html = '<thead><tr><th>From</th><th>To</th><th>Text</th><th>Source</th></tr></thead><tbody>';
             
-            // Add rows for each filtered data entry that has a mobile number
-            filteredData.forEach(row => {
-                const mobileNumber = row[mobileColumnIndex];
-                if (mobileNumber && mobileNumber.toString().trim()) {
-                    html += `
-                        <tr>
-                            <td>${fromValue}</td>
-                            <td>${mobileNumber}</td>
-                            <td class="text-cell">${templateText}</td>
-                        </tr>
-                    `;
-                }
+            let totalRecipients = 0;
+            
+            // Add rows for spreadsheet data if mobile column exists
+            if (mobileColumnIndex >= 0 && filteredData.length > 0) {
+                filteredData.forEach(row => {
+                    const mobileNumber = row[mobileColumnIndex];
+                    if (mobileNumber && mobileNumber.toString().trim()) {
+                        html += `
+                            <tr>
+                                <td>${fromValue}</td>
+                                <td>${mobileNumber}</td>
+                                <td class="text-cell">${templateText}</td>
+                                <td>Spreadsheet</td>
+                            </tr>
+                        `;
+                        totalRecipients++;
+                    }
+                });
+            }
+            
+            // Add rows for additional numbers
+            const additionalNumbers = getAdditionalNumbers();
+            additionalNumbers.forEach(number => {
+                html += `
+                    <tr>
+                        <td>${fromValue}</td>
+                        <td>${number}</td>
+                        <td class="text-cell">${templateText}</td>
+                        <td>Additional</td>
+                    </tr>
+                `;
+                totalRecipients++;
             });
             
             html += '</tbody>';
             smsTable.innerHTML = html;
             smsTableContainer.style.display = 'block';
             
-            const validMobileCount = filteredData.filter(row => 
-                row[mobileColumnIndex] && row[mobileColumnIndex].toString().trim()
-            ).length;
-            
-            showStatus(`Generated SMS table with ${validMobileCount} recipients`, 'success');
+            if (totalRecipients === 0) {
+                showStatus('No recipients found. Add mobile numbers to spreadsheet or additional numbers list.', 'error');
+            } else {
+                const spreadsheetCount = mobileColumnIndex >= 0 ? filteredData.filter(row => 
+                    row[mobileColumnIndex] && row[mobileColumnIndex].toString().trim()
+                ).length : 0;
+                const additionalCount = additionalNumbers.length;
+                
+                showStatus(`Generated SMS table with $${totalRecipients} total recipients ($${spreadsheetCount} from spreadsheet, ${additionalCount} additional)`, 'success');
+            }
         }
 
         function exportSMSData() {
@@ -545,14 +599,28 @@
             const templateText = smsTemplates[templateName];
             
             // Create data array for export
-            const exportData = [['From', 'To', 'Text']];
+            const exportData = [['From', 'To', 'Text', 'Source']];
             
-            filteredData.forEach(row => {
-                const mobileNumber = row[mobileColumnIndex];
-                if (mobileNumber && mobileNumber.toString().trim()) {
-                    exportData.push([fromValue, mobileNumber, templateText]);
-                }
+            // Add spreadsheet data
+            if (mobileColumnIndex >= 0) {
+                filteredData.forEach(row => {
+                    const mobileNumber = row[mobileColumnIndex];
+                    if (mobileNumber && mobileNumber.toString().trim()) {
+                        exportData.push([fromValue, mobileNumber, templateText, 'Spreadsheet']);
+                    }
+                });
+            }
+            
+            // Add additional numbers
+            const additionalNumbers = getAdditionalNumbers();
+            additionalNumbers.forEach(number => {
+                exportData.push([fromValue, number, templateText, 'Additional']);
             });
+            
+            if (exportData.length <= 1) {
+                showStatus('No SMS data to export', 'error');
+                return;
+            }
             
             try {
                 const ws = XLSX.utils.aoa_to_sheet(exportData);
@@ -562,7 +630,7 @@
                 const fileName = `SMS_Export_${new Date().toISOString().slice(0, 10)}.xlsx`;
                 XLSX.writeFile(wb, fileName);
                 
-                showStatus(`Exported SMS data to "${fileName}"`, 'success');
+                showStatus(`Exported $${exportData.length - 1} SMS records to "$${fileName}"`, 'success');
             } catch (error) {
                 showStatus('Error exporting SMS data: ' + error.message, 'error');
             }
@@ -689,7 +757,7 @@
             });
             
             displayData();
-            showStatus(`Showing $${filteredData.length} of $${originalData.length} rows`, 'info');
+            showStatus(`Showing ${filteredData.length} of ${originalData.length} rows`, 'info');
             
             // Auto-regenerate SMS table if both dropdowns are selected
             const fromValue = document.getElementById('fromSelect').value;
