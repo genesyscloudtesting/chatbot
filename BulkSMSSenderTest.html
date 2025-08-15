@@ -78,6 +78,13 @@
             border-radius: 5px;
             border: 1px solid #b3d7ff;
         }
+        .send-sms-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8d7da;
+            border-radius: 5px;
+            border: 1px solid #f5c6cb;
+        }
         .sms-controls {
             display: flex;
             gap: 20px;
@@ -121,6 +128,27 @@
             min-height: 60px;
             white-space: pre-wrap;
         }
+        .verification-checks {
+            margin-bottom: 20px;
+        }
+        .check-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+        }
+        .check-item input[type="checkbox"] {
+            margin-right: 10px;
+            transform: scale(1.2);
+        }
+        .check-item label {
+            font-weight: bold;
+            color: #333;
+            cursor: pointer;
+        }
         .filter-controls {
             margin-bottom: 15px;
         }
@@ -152,6 +180,10 @@
         button:hover {
             background: #218838;
         }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
         button.secondary {
             background: #6c757d;
         }
@@ -169,6 +201,14 @@
         }
         button.sms:hover {
             background: #e8670e;
+        }
+        button.send-sms {
+            background: #dc3545;
+            font-size: 16px;
+            padding: 12px 24px;
+        }
+        button.send-sms:hover:not(:disabled) {
+            background: #c82333;
         }
         select, input {
             padding: 8px;
@@ -268,6 +308,20 @@
             color: #666;
             margin-top: 5px;
         }
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #333;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -353,6 +407,32 @@
             </div>
             <div class="sms-table-container" id="smsTableContainer" style="display: none;">
                 <table id="smsTable"></table>
+            </div>
+        </div>
+
+        <div class="send-sms-section" style="display:none;" id="sendSmsSection">
+            <h3>📤 Send SMS</h3>
+            <div class="verification-checks">
+                <div class="check-item">
+                    <input type="checkbox" id="checkFrom" onchange="updateSendButton()">
+                    <label for="checkFrom">✓ I have checked the From address information is correct</label>
+                </div>
+                <div class="check-item">
+                    <input type="checkbox" id="checkTo" onchange="updateSendButton()">
+                    <label for="checkTo">✓ I have checked the To field data is correct</label>
+                </div>
+                <div class="check-item">
+                    <input type="checkbox" id="checkTemplate" onchange="updateSendButton()">
+                    <label for="checkTemplate">✓ I have checked the correct SMS Template is selected</label>
+                </div>
+            </div>
+            <div style="text-align: center;">
+                <button id="sendSmsButton" class="send-sms" onclick="sendBulkSMS()" disabled>
+                    📱 Send SMS
+                </button>
+                <div id="sendingIndicator" style="display: none;">
+                    <span class="loading"></span> Sending SMS messages...
+                </div>
             </div>
         </div>
 
@@ -577,6 +657,7 @@
             
             if (totalRecipients === 0) {
                 showStatus('No recipients found. Add mobile numbers to spreadsheet or additional numbers list.', 'error');
+                document.getElementById('sendSmsSection').style.display = 'none';
             } else {
                 const spreadsheetCount = mobileColumnIndex >= 0 ? filteredData.filter(row => 
                     row[mobileColumnIndex] && row[mobileColumnIndex].toString().trim()
@@ -584,7 +665,125 @@
                 const additionalCount = additionalNumbers.length;
                 
                 showStatus(`Generated SMS table with $${totalRecipients} total recipients ($${spreadsheetCount} from spreadsheet, ${additionalCount} additional)`, 'success');
+                document.getElementById('sendSmsSection').style.display = 'block';
+                
+                // Reset verification checkboxes
+                document.getElementById('checkFrom').checked = false;
+                document.getElementById('checkTo').checked = false;
+                document.getElementById('checkTemplate').checked = false;
+                updateSendButton();
             }
+        }
+
+        function updateSendButton() {
+            const checkFrom = document.getElementById('checkFrom').checked;
+            const checkTo = document.getElementById('checkTo').checked;
+            const checkTemplate = document.getElementById('checkTemplate').checked;
+            
+            const sendButton = document.getElementById('sendSmsButton');
+            sendButton.disabled = !(checkFrom && checkTo && checkTemplate);
+        }
+
+        function formatPhoneNumber(number) {
+            // Clean the number - remove spaces, dashes, etc.
+            let cleaned = number.toString().replace(/\D/g, '');
+            
+            // If it starts with 04, replace with +614
+            if (cleaned.startsWith('04')) {
+                cleaned = '+614' + cleaned.substring(2);
+            }
+            // If it starts with 61, add +
+            else if (cleaned.startsWith('61')) {
+                cleaned = '+' + cleaned;
+            }
+            // If it doesn't start with + and is not already formatted, assume it's Australian
+            else if (!cleaned.startsWith('+')) {
+                cleaned = '+61' + cleaned;
+            }
+            
+            return cleaned;
+        }
+
+        function sendBulkSMS() {
+            const fromValue = document.getElementById('fromSelect').value;
+            const templateName = document.getElementById('templateSelect').value;
+            const templateText = smsTemplates[templateName];
+            
+            // Show loading indicator
+            document.getElementById('sendingIndicator').style.display = 'block';
+            document.getElementById('sendSmsButton').disabled = true;
+            
+            // Compile SMS data into JSON payload
+            const messages = [];
+            
+            // Add spreadsheet data
+            if (mobileColumnIndex >= 0) {
+                filteredData.forEach(row => {
+                    const mobileNumber = row[mobileColumnIndex];
+                    if (mobileNumber && mobileNumber.toString().trim()) {
+                        messages.push({
+                            "From": fromValue,
+                            "To": formatPhoneNumber(mobileNumber),
+                            "Text": templateText
+                        });
+                    }
+                });
+            }
+            
+            // Add additional numbers
+            const additionalNumbers = getAdditionalNumbers();
+            additionalNumbers.forEach(number => {
+                messages.push({
+                    "From": fromValue,
+                    "To": formatPhoneNumber(number),
+                    "Text": templateText
+                });
+            });
+            
+            if (messages.length === 0) {
+                showStatus('No messages to send', 'error');
+                document.getElementById('sendingIndicator').style.display = 'none';
+                document.getElementById('sendSmsButton').disabled = false;
+                return;
+            }
+            
+            // Create the payload
+            const payload = {
+                "Messages": messages
+            };
+            
+            // Google Apps Script URL
+            const scriptUrl = 'https://script.google.com/a/macros/news.com.au/s/AKfycbyf2RE1LJPcwx1QStQc21WZ1_YK4vIXwSaTmBJsJyzqKMg7CX18NUbigEjRr5IrSqXt/exec';
+            const requestUrl = `${scriptUrl}?Function_Name=SendBulkSMS&Message_Data=${encodeURIComponent(JSON.stringify(payload))}`;
+            
+            // Send the request
+            fetch(requestUrl, {
+                method: 'GET',
+                mode: 'no-cors'
+            })
+            .then(() => {
+                // Since we're using no-cors mode, we can't read the response
+                // But we can assume success if no error is thrown
+                showStatus(`SMS send request submitted successfully for ${messages.length} recipients`, 'success');
+                
+                // Log the payload for debugging
+                console.log('SMS Payload sent:', JSON.stringify(payload, null, 2));
+                
+                // Reset the form
+                document.getElementById('checkFrom').checked = false;
+                document.getElementById('checkTo').checked = false;
+                document.getElementById('checkTemplate').checked = false;
+                updateSendButton();
+            })
+            .catch(error => {
+                console.error('Error sending SMS:', error);
+                showStatus('Error sending SMS: ' + error.message, 'error');
+            })
+            .finally(() => {
+                // Hide loading indicator
+                document.getElementById('sendingIndicator').style.display = 'none';
+                document.getElementById('sendSmsButton').disabled = false;
+            });
         }
 
         function exportSMSData() {
@@ -630,7 +829,7 @@
                 const fileName = `SMS_Export_${new Date().toISOString().slice(0, 10)}.xlsx`;
                 XLSX.writeFile(wb, fileName);
                 
-                showStatus(`Exported $${exportData.length - 1} SMS records to "$${fileName}"`, 'success');
+                showStatus(`Exported ${exportData.length - 1} SMS records to "${fileName}"`, 'success');
             } catch (error) {
                 showStatus('Error exporting SMS data: ' + error.message, 'error');
             }
@@ -656,7 +855,7 @@
                 <strong>Total Rows:</strong> ${originalData.length} | 
                 <strong>Showing:</strong> ${filteredData.length} rows | 
                 <strong>Columns:</strong> ${headers.length}
-                $${mobileColumnIndex >= 0 ? ` | <strong>Mobile Column:</strong> $${headers[mobileColumnIndex]}` : ''}
+                ${mobileColumnIndex >= 0 ? ` | <strong>Mobile Column:</strong> ${headers[mobileColumnIndex]}` : ''}
             `;
             
             // Create table
@@ -673,7 +872,7 @@
             let html = '<thead><tr>';
             headers.forEach((header, index) => {
                 const isMobileColumn = index === mobileColumnIndex;
-                html += `<th>$${header} <small>(Col $${index + 1})</small>${isMobileColumn ? ' 📱' : ''}</th>`;
+                html += `<th>${header} <small>(Col ${index + 1})</small>${isMobileColumn ? ' 📱' : ''}</th>`;
             });
             html += '</tr></thead><tbody>';
             
