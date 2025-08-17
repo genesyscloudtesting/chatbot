@@ -36,7 +36,6 @@
       <div><h2>Chat Bot Reporting</h2></div>
       <div><h4>Note: You can only retrieve the past 10 days of bot conversations.</h4></div>
       <div style="display: inline-flex">
-        <gux-i18n lang="en-AU">
         <gux-dropdown filter-type="starts-with" placeholder="UTC-00:00" id="timeZone" style="width: 150px; padding: 8px">
           <gux-listbox aria-label="Time Zone">
             <gux-option value="-12:00">UTC-12:00</gux-option><gux-option value="-11:00">UTC-11:00</gux-option><gux-option value="-10:00">UTC-10:00</gux-option
@@ -54,13 +53,12 @@
             ><gux-option value="+12:45">UTC+12:45</gux-option><gux-option value="+13:00">UTC+13:00</gux-option><gux-option value="+14:00">UTC+14:00</gux-option>
           </gux-listbox>
         </gux-dropdown>
-        <gux-datepicker id="datepicker" style="padding: 8px" mode="range" value="" number-of-months="2"></gux-datepicker>
+        <gux-i18n lang="en-AU"><gux-datepicker id="datepicker" style="padding: 8px" mode="range" value="" number-of-months="2"></gux-datepicker></gux-i18n>
         <gux-button style="padding: 8px" accent="secondary" onclick="lastWeek()">Last Week</gux-button>
         <gux-button style="padding: 8px" accent="secondary" onclick="last10days()">Last 10 Days</gux-button>
         <gux-button style="padding: 8px" accent="primary" onclick="getData()">Search</gux-button>
         <gux-button style="padding: 8px" accent="secondary" onclick="clearData()">Clear</gux-button>
         <gux-button id="download" style="padding: 8px; display: none" accent="ghost" onclick="buildCsv()">Download</gux-button>
-        </gux-i18n>  
       </div>
       <div></div>
       <div style="display: inline-flex">
