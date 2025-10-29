@@ -481,7 +481,7 @@
           channelId = channel.id
           debugLog(`Channel created: ${channelId}`)
 
-          // 2) Subscribe to transcription AND user's conversation events - FIXED TOPICS
+          // 2) Subscribe to transcription AND user's conversation events
           const transcriptionTopic = `v2.conversations.${conversationId}.transcription`
           const userConversationsTopic = `v2.users.${currentUserId}.conversations.calls`
           
@@ -558,10 +558,11 @@
           const text = alternatives[0].transcript || ''
           if (!text) return
 
+          // Channel is uppercase 'INTERNAL' not lowercase
           const speaker = transcript.channel === 'INTERNAL' ? 'Agent' : 'Customer'
           const textLower = text.toLowerCase()
 
-          debugLog(`Transcript (${speaker}): ${text}`)
+          debugLog(`Transcript (${speaker}): ${text} [channel: ${transcript.channel}]`)
 
           // Add to display
           addTranscriptLine(speaker, text)
@@ -579,7 +580,7 @@
             alertsSent++
             document.getElementById('alertCount').textContent = alertsSent
             debugLog('Closing phrase detected WITHOUT survey mention - sending alert!')
-            showToast("Please mention survey to customer")
+            showToast('Please mention survey to customer')
           }
         })
       }
@@ -587,8 +588,6 @@
       function handleUserConversationStateChange(msg) {
         const eventBody = msg.eventBody
         if (!eventBody) return
-
-        debugLog(`User conversation state change: ${JSON.stringify(eventBody)}`)
 
         // Check if this is about our monitored conversation
         const conversationId = eventBody.id || eventBody.conversationId
@@ -600,26 +599,31 @@
 
         debugLog(`State change for monitored conversation: ${conversationId}`)
 
-        // Check if conversation has ended by looking at participant states
+        // FIXED: Check participant state directly, not in a nested calls array
+        // Only close when conversation actually ends (all participants disconnected)
         if (eventBody.participants) {
-          const allDisconnected = eventBody.participants.every(p => {
-            // Check calls array
-            if (p.calls && p.calls.length > 0) {
-              const allCallsDisconnected = p.calls.every(call => {
-                const isDisconnected = call.state === 'disconnected' || call.disconnectType
-                debugLog(`  Call state: ${call.state}, disconnectType: ${call.disconnectType || 'none'}`)
-                return isDisconnected
-              })
-              return allCallsDisconnected
-            }
-            return true
+          let participantStates = []
+          
+          // Log all participant states for debugging
+          eventBody.participants.forEach(p => {
+            const state = p.state || 'unknown'
+            const purpose = p.purpose || 'unknown'
+            participantStates.push(`${purpose}:${state}`)
+            debugLog(`  Participant ${purpose}: state=${state}, muted=${p.muted}`)
           })
 
+          // Only consider conversation ended if ALL participants are 'disconnected'
+          const allDisconnected = eventBody.participants.every(p => p.state === 'disconnected')
+
+          debugLog(`  All participants disconnected? ${allDisconnected} (states: ${participantStates.join(', ')})`)
+
           if (allDisconnected) {
-            debugLog('All participants disconnected - conversation ended')
+            debugLog('✓ All participants disconnected - conversation ended')
             notification('Info', 'Conversation ended - stopping monitoring')
             updateStatus('Conversation ended - monitoring stopped', 'warning')
             stopMonitoring()
+          } else {
+            debugLog('  Conversation still active (mute/unmute or other state change)')
           }
         }
       }
@@ -758,7 +762,7 @@
       }
 
       function testAlert() {
-        showToast("Please mention survey to customer.")
+        showToast('Please mention survey to customer')
       }
 
       function notification(type, message) {
