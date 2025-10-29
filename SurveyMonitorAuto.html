@@ -173,7 +173,24 @@
         margin-top: 15px;
         font-family: monospace;
         font-size: 12px;
-        max-height: 200px;
+        max-height: 300px;
+        overflow-y: auto;
+      }
+      .debug-message {
+        margin-bottom: 10px;
+        padding: 8px;
+        background: white;
+        border-radius: 4px;
+        border-left: 3px solid #667eea;
+      }
+      .debug-json {
+        background: #f8f9fa;
+        padding: 8px;
+        margin-top: 5px;
+        border-radius: 4px;
+        font-size: 11px;
+        color: #333;
+        max-height: 150px;
         overflow-y: auto;
       }
     </style>
@@ -290,12 +307,24 @@
       const surveyKeywords = /survey|feedback|questionnaire|rate your experience|quick questions|how did we do|satisfaction/i
       const closingPhrases = /before i let you go|anything else i can help with|thanks for your time|thank you for calling|have a (great|good|nice) day|we're all set|is that everything|take care/i
 
-      function debugLog(message) {
+      function debugLog(message, jsonData = null) {
         console.log(message)
         const debugContent = document.getElementById('debugContent')
         if (debugContent) {
           const timestamp = new Date().toLocaleTimeString()
-          debugContent.innerHTML += `<div>[${timestamp}] ${message}</div>`
+          const messageDiv = document.createElement('div')
+          messageDiv.className = 'debug-message'
+          messageDiv.innerHTML = `<strong>[${timestamp}]</strong> ${message}`
+          
+          // If JSON data is provided, add it in a collapsible format
+          if (jsonData) {
+            const jsonDiv = document.createElement('div')
+            jsonDiv.className = 'debug-json'
+            jsonDiv.textContent = JSON.stringify(jsonData, null, 2)
+            messageDiv.appendChild(jsonDiv)
+          }
+          
+          debugContent.appendChild(messageDiv)
           debugContent.scrollTop = debugContent.scrollHeight
         }
       }
@@ -514,7 +543,9 @@
 
           websocket.onmessage = (evt) => {
             const msg = JSON.parse(evt.data)
-            debugLog(`WebSocket message: ${msg.topicName}`)
+            
+            // Log the full message with JSON data for debugging
+            debugLog(`WebSocket message received: ${msg.topicName}`, msg)
 
             // Handle transcription messages
             if (msg.topicName && msg.topicName.includes('transcription')) {
@@ -567,20 +598,25 @@
           // Add to display
           addTranscriptLine(speaker, text)
 
-          // Check for survey mention
-          if (surveyKeywords.test(textLower)) {
-            heardSurvey = true
-            document.getElementById('surveyDetected').textContent = 'YES'
-            document.getElementById('surveyDetected').style.color = '#28a745'
-            debugLog('Survey keyword detected!')
-          }
+          // FIXED: Only check for keywords if AGENT (INTERNAL channel) spoke
+          if (transcript.channel === 'INTERNAL') {
+            // Check for survey mention
+            if (surveyKeywords.test(textLower)) {
+              heardSurvey = true
+              document.getElementById('surveyDetected').textContent = 'YES'
+              document.getElementById('surveyDetected').style.color = '#28a745'
+              debugLog('✓ Survey keyword detected from AGENT!')
+            }
 
-          // Check for closing phrases
-          if (closingPhrases.test(textLower) && !heardSurvey) {
-            alertsSent++
-            document.getElementById('alertCount').textContent = alertsSent
-            debugLog('Closing phrase detected WITHOUT survey mention - sending alert!')
-            showToast('Please mention survey to customer')
+            // Check for closing phrases
+            if (closingPhrases.test(textLower) && !heardSurvey) {
+              alertsSent++
+              document.getElementById('alertCount').textContent = alertsSent
+              debugLog('⚠️ Closing phrase detected from AGENT WITHOUT survey mention - sending alert!')
+              showToast('Please mention survey to customer')
+            }
+          } else {
+            debugLog(`  Skipping keyword detection - Customer spoke, not Agent`)
           }
         })
       }
@@ -599,8 +635,7 @@
 
         debugLog(`State change for monitored conversation: ${conversationId}`)
 
-        // FIXED: Check participant state directly, not in a nested calls array
-        // Only close when conversation actually ends (all participants disconnected)
+        // Check participant state directly
         if (eventBody.participants) {
           let participantStates = []
           
