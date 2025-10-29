@@ -418,7 +418,7 @@
               if (closingPhrases.test(textLower) && !heardSurvey) {
                 alertsSent++
                 document.getElementById('alertCount').textContent = alertsSent
-                showToast("Please say: I'd like to invite you to a quick 1-minute survey.")
+                showToast("Please mention survey to customer.")
               }
             })
           }
@@ -572,7 +572,7 @@
       }
 
       function testAlert() {
-        showToast("Please say: I'd like to invite you to a quick 1-minute survey.")
+        showToast("Please mention survey to customer.")
       }
 
       function notification(type, message) {
