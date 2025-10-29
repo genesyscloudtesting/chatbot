@@ -165,6 +165,17 @@
         font-size: 14px;
         color: #004085;
       }
+      .debug-section {
+        background: #f0f0f0;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        padding: 10px;
+        margin-top: 15px;
+        font-family: monospace;
+        font-size: 12px;
+        max-height: 200px;
+        overflow-y: auto;
+      }
     </style>
   </head>
   <body onload="start()">
@@ -193,6 +204,12 @@
         <div class="control-row">
           <input type="text" id="manualConvId" placeholder="Or enter Conversation ID manually" style="width: 350px; padding: 8px; border-radius: 4px; border: 1px solid #ccc" />
         </div>
+
+        <div class="debug-section" id="debugLog" style="display: none;">
+          <strong>Debug Log:</strong>
+          <div id="debugContent"></div>
+        </div>
+        <gux-button accent="ghost" onclick="toggleDebug()" style="margin-top: 10px;">Toggle Debug</gux-button>
       </div>
 
       <div class="metrics-grid">
@@ -273,12 +290,27 @@
       const surveyKeywords = /survey|feedback|questionnaire|rate your experience|quick questions|how did we do|satisfaction/i
       const closingPhrases = /before i let you go|anything else i can help with|thanks for your time|thank you for calling|have a (great|good|nice) day|we're all set|is that everything|take care/i
 
+      function debugLog(message) {
+        console.log(message)
+        const debugContent = document.getElementById('debugContent')
+        if (debugContent) {
+          const timestamp = new Date().toLocaleTimeString()
+          debugContent.innerHTML += `<div>[${timestamp}] ${message}</div>`
+          debugContent.scrollTop = debugContent.scrollHeight
+        }
+      }
+
+      function toggleDebug() {
+        const debugSection = document.getElementById('debugLog')
+        debugSection.style.display = debugSection.style.display === 'none' ? 'block' : 'none'
+      }
+
       async function start() {
         try {
           client.setEnvironment(gc_region)
           client.setPersistSettings(true, '_survey_monitor_')
 
-          console.log('%cLogging in to Genesys Cloud', 'color: green')
+          debugLog('Logging in to Genesys Cloud...')
           await client.loginImplicitGrant(gc_clientId, gc_redirectUrl, {})
           
           notification('Success', 'Successfully authenticated to Genesys Cloud')
@@ -287,12 +319,14 @@
           // Get current user ID
           const userInfo = await usersApi.getUsersMe()
           currentUserId = userInfo.id
-          console.log('Current User ID:', currentUserId)
+          debugLog(`Current User ID: ${currentUserId}`)
+          debugLog(`Current User Name: ${userInfo.name}`)
           
           // Auto-start monitoring for active conversations
           await autoStartMonitoring()
           
         } catch (err) {
+          debugLog(`Error: ${err.message}`)
           console.log('Error: ', err)
           notification('Error', `Authentication failed: ${err.message}`)
           updateStatus('Authentication failed', 'error')
@@ -303,48 +337,146 @@
         try {
           document.getElementById('spinner').style.display = 'block'
           
-          // Load active conversations
-          const response = await conversationsApi.getConversationsCalls({ pageSize: 25 })
+          debugLog('Fetching active conversations...')
           
-          // Populate dropdown
+          // Try to get conversation from Client App context if in iframe
+          let contextConversationId = null
+          try {
+            if (window.location !== window.parent.location) {
+              debugLog('Running in iframe - trying to get context...')
+              // Try to get the current conversation context
+              const context = await myClientApp.lifecycle.bootstrapped()
+              debugLog(`Context received: ${JSON.stringify(context)}`)
+            }
+          } catch (e) {
+            debugLog('Not in iframe or context not available')
+          }
+
+          // Load active conversations using Analytics API for better data
+          const now = new Date()
+          const thirtyMinsAgo = new Date(now.getTime() - 30 * 60000)
+          
+          debugLog('Querying conversations...')
+          
+          // Use the conversations query API for better participant data
+          const queryBody = {
+            interval: `${thirtyMinsAgo.toISOString()}/${now.toISOString()}`,
+            order: "desc",
+            orderBy: "conversationStart",
+            paging: {
+              pageSize: 25,
+              pageNumber: 1
+            },
+            segmentFilters: [
+              {
+                type: "and",
+                predicates: [
+                  {
+                    dimension: "mediaType",
+                    value: "voice"
+                  }
+                ]
+              }
+            ]
+          }
+          
+          let conversationsList = []
+          
+          try {
+            const analyticsResponse = await conversationsApi.postAnalyticsConversationsDetailsQuery(queryBody)
+            debugLog(`Analytics query returned ${analyticsResponse.conversations?.length || 0} conversations`)
+            
+            if (analyticsResponse.conversations) {
+              // Filter for active conversations
+              conversationsList = analyticsResponse.conversations.filter(conv => {
+                // Check if any participant is still connected
+                const hasActiveParticipant = conv.participants?.some(p => 
+                  p.sessions?.some(s => !s.segments?.every(seg => seg.disconnectType))
+                )
+                return hasActiveParticipant
+              })
+              debugLog(`Filtered to ${conversationsList.length} active conversations`)
+            }
+          } catch (analyticsError) {
+            debugLog(`Analytics query failed: ${analyticsError.message}, falling back to basic API`)
+          }
+          
+          // Fallback to basic API if analytics fails
+          if (conversationsList.length === 0) {
+            const response = await conversationsApi.getConversationsCalls({ pageSize: 25 })
+            debugLog(`Basic API returned ${response.entities?.length || 0} conversations`)
+            
+            if (response.entities) {
+              conversationsList = response.entities
+            }
+          }
+          
+          // Populate dropdown and find user conversations
           const dropdown = document.getElementById('conversationList')
           dropdown.innerHTML = ''
 
-          if (response.entities && response.entities.length > 0) {
-            // Find conversations where current user is a participant
-            let userConversation = null
+          let userConversation = null
+          let userConversations = []
+
+          if (conversationsList.length > 0) {
+            debugLog(`Processing ${conversationsList.length} conversations...`)
             
-            for (const conv of response.entities) {
-              let option = document.createElement('gux-option')
-              option.value = conv.id
+            for (const conv of conversationsList) {
+              const convId = conv.conversationId || conv.id
               
-              // Get participant info
-              let participantInfo = ''
-              let isUserInConversation = false
-              
-              if (conv.participants && conv.participants.length > 0) {
-                const customer = conv.participants.find(p => p.purpose === 'customer')
-                const agent = conv.participants.find(p => p.purpose === 'agent' || p.purpose === 'acd')
+              // Fetch detailed conversation info to get participant data
+              try {
+                const detailedConv = await conversationsApi.getConversationsCall(convId)
+                debugLog(`Conversation ${convId}: ${detailedConv.participants?.length || 0} participants`)
                 
-                // Check if current user is in this conversation
-                if (agent && agent.userId === currentUserId) {
-                  isUserInConversation = true
-                  if (!userConversation) {
-                    userConversation = conv.id
+                let option = document.createElement('gux-option')
+                option.value = convId
+                
+                // Get participant info
+                let participantInfo = ''
+                let isUserInConversation = false
+                let agentName = ''
+                let customerName = ''
+                
+                if (detailedConv.participants && detailedConv.participants.length > 0) {
+                  for (const participant of detailedConv.participants) {
+                    debugLog(`  Participant: ${participant.name} (${participant.purpose}) - User ID: ${participant.userId || 'N/A'}`)
+                    
+                    if (participant.purpose === 'customer' || participant.purpose === 'external') {
+                      customerName = participant.name || 'Customer'
+                    }
+                    
+                    if (participant.purpose === 'agent' || participant.purpose === 'acd' || participant.purpose === 'user') {
+                      agentName = participant.name || 'Agent'
+                      
+                      // Check if this is the current user
+                      if (participant.userId === currentUserId) {
+                        isUserInConversation = true
+                        userConversations.push(convId)
+                        if (!userConversation) {
+                          userConversation = convId
+                        }
+                        debugLog(`  ✓ MATCH: Current user is in this conversation!`)
+                      }
+                    }
                   }
                 }
                 
-                participantInfo = `${agent?.name || 'Agent'} - ${customer?.name || 'Customer'}`
+                participantInfo = `${agentName} - ${customerName}`
+                
+                const startTime = new Date(detailedConv.conversationStart || conv.conversationStart).toLocaleTimeString('en-AU')
+                option.innerHTML = `${convId.substring(0, 8)}... | ${startTime} | ${participantInfo}${isUserInConversation ? ' ⭐ (You)' : ''}`
+                dropdown.appendChild(option)
+              } catch (detailError) {
+                debugLog(`  Error fetching details for ${convId}: ${detailError.message}`)
               }
-              
-              const startTime = new Date(conv.conversationStart).toLocaleTimeString('en-AU')
-              option.innerHTML = `${conv.id.substring(0, 8)}... | ${startTime} | ${participantInfo}${isUserInConversation ? ' (You)' : ''}`
-              dropdown.appendChild(option)
             }
+            
+            debugLog(`Found ${userConversations.length} conversations with current user`)
             
             // Auto-start monitoring if user has an active conversation
             if (userConversation) {
-              console.log('Found active conversation for user:', userConversation)
+              debugLog(`Auto-starting monitoring for: ${userConversation}`)
               document.getElementById('conversationDropdown').value = userConversation
               notification('Info', 'Auto-starting monitoring for your active conversation')
               updateStatus('Auto-starting monitoring...', 'info')
@@ -354,16 +486,19 @@
               await init(userConversation)
               document.getElementById('stopBtn').disabled = false
             } else {
-              notification('Info', `Found ${response.entities.length} active conversations (none with you as participant)`)
+              debugLog('No conversations found with current user as participant')
+              notification('Info', `Found ${conversationsList.length} active conversations (none with you as participant)`)
               updateStatus('No active conversations found for you - Select one to monitor', 'info')
             }
           } else {
+            debugLog('No active conversations found at all')
             notification('Info', 'No active conversations found')
             updateStatus('No active conversations - Waiting for calls...', 'info')
           }
           
           document.getElementById('spinner').style.display = 'none'
         } catch (err) {
+          debugLog(`Error in auto-start: ${err.message}`)
           console.error('Error in auto-start:', err)
           notification('Error', `Failed to auto-start: ${err.message}`)
           document.getElementById('spinner').style.display = 'none'
@@ -372,49 +507,7 @@
       }
 
       async function refreshConversations() {
-        try {
-          document.getElementById('spinner').style.display = 'block'
-          const response = await conversationsApi.getConversationsCalls({ pageSize: 25 })
-          
-          const dropdown = document.getElementById('conversationList')
-          dropdown.innerHTML = ''
-
-          if (response.entities && response.entities.length > 0) {
-            for (const conv of response.entities) {
-              let option = document.createElement('gux-option')
-              option.value = conv.id
-              
-              // Get participant info
-              let participantInfo = ''
-              let isUserInConversation = false
-              
-              if (conv.participants && conv.participants.length > 0) {
-                const customer = conv.participants.find(p => p.purpose === 'customer')
-                const agent = conv.participants.find(p => p.purpose === 'agent' || p.purpose === 'acd')
-                
-                // Check if current user is in this conversation
-                if (agent && agent.userId === currentUserId) {
-                  isUserInConversation = true
-                }
-                
-                participantInfo = `${agent?.name || 'Agent'} - ${customer?.name || 'Customer'}`
-              }
-              
-              const startTime = new Date(conv.conversationStart).toLocaleTimeString('en-AU')
-              option.innerHTML = `${conv.id.substring(0, 8)}... | ${startTime} | ${participantInfo}${isUserInConversation ? ' (You)' : ''}`
-              dropdown.appendChild(option)
-            }
-            notification('Success', `Found ${response.entities.length} active conversations`)
-          } else {
-            notification('Warning', 'No active conversations found')
-          }
-          
-          document.getElementById('spinner').style.display = 'none'
-        } catch (err) {
-          console.error('Error fetching conversations:', err)
-          notification('Error', `Failed to load conversations: ${err.message}`)
-          document.getElementById('spinner').style.display = 'none'
-        }
+        await autoStartMonitoring()
       }
 
       async function startMonitoring() {
@@ -429,6 +522,7 @@
 
           document.getElementById('spinner').style.display = 'block'
           updateStatus('Starting monitoring...', 'info')
+          debugLog(`Manually starting monitoring for: ${conversationId}`)
 
           currentConversationId = conversationId
           await init(conversationId)
@@ -436,6 +530,7 @@
           document.getElementById('stopBtn').disabled = false
           document.getElementById('spinner').style.display = 'none'
         } catch (err) {
+          debugLog(`Error starting monitoring: ${err.message}`)
           console.error('Error starting monitoring:', err)
           notification('Error', `Failed to start monitoring: ${err.message}`)
           updateStatus('Monitoring failed', 'error')
@@ -446,14 +541,20 @@
       async function init(conversationId) {
         try {
           updateStatus('Creating notification channel...', 'info')
+          debugLog('Creating notification channel...')
 
           // 1) Create a notifications channel
           const channel = await notificationsApi.postNotificationsChannels()
           channelId = channel.id
+          debugLog(`Channel created: ${channelId}`)
 
           // 2) Subscribe to both transcription AND conversation state changes
           const transcriptionTopic = `v2.conversations.${conversationId}.transcription`
           const conversationTopic = `v2.conversations.calls.${conversationId}`
+          
+          debugLog(`Subscribing to topics:`)
+          debugLog(`  - ${transcriptionTopic}`)
+          debugLog(`  - ${conversationTopic}`)
           
           await notificationsApi.postNotificationsChannelSubscriptions(channelId, [
             { id: transcriptionTopic },
@@ -461,11 +562,13 @@
           ])
 
           updateStatus('Opening WebSocket connection...', 'info')
+          debugLog(`Opening WebSocket: ${channel.connectUri}`)
 
           // 3) Open WebSocket
           websocket = new WebSocket(channel.connectUri)
 
           websocket.onopen = () => {
+            debugLog('WebSocket connected!')
             updateStatus(`Connected - Monitoring ${conversationId.substring(0, 8)}...`, 'success')
             callStartTime = Date.now()
             heardSurvey = false
@@ -478,6 +581,7 @@
 
           websocket.onmessage = (evt) => {
             const msg = JSON.parse(evt.data)
+            debugLog(`WebSocket message: ${msg.topicName}`)
 
             // Handle transcription messages
             if (msg.topicName && msg.topicName.includes('transcription')) {
@@ -491,15 +595,18 @@
           }
 
           websocket.onerror = (error) => {
+            debugLog(`WebSocket error: ${error}`)
             console.error('WebSocket error:', error)
             updateStatus('WebSocket error occurred', 'error')
           }
 
           websocket.onclose = () => {
+            debugLog('WebSocket closed')
             updateStatus('WebSocket connection closed', 'warning')
             cleanup()
           }
         } catch (error) {
+          debugLog(`Initialisation error: ${error.message}`)
           console.error('Initialisation error:', error)
           throw error
         }
@@ -521,6 +628,8 @@
           const speaker = transcript.channel === 'internal' ? 'Agent' : 'Customer'
           const textLower = text.toLowerCase()
 
+          debugLog(`Transcript (${speaker}): ${text}`)
+
           // Add to display
           addTranscriptLine(speaker, text)
 
@@ -529,12 +638,14 @@
             heardSurvey = true
             document.getElementById('surveyDetected').textContent = 'YES'
             document.getElementById('surveyDetected').style.color = '#28a745'
+            debugLog('Survey keyword detected!')
           }
 
           // Check for closing phrases
           if (closingPhrases.test(textLower) && !heardSurvey) {
             alertsSent++
             document.getElementById('alertCount').textContent = alertsSent
+            debugLog('Closing phrase detected WITHOUT survey mention - sending alert!')
             showToast("Please say: I'd like to invite you to a quick 1-minute survey.")
           }
         })
@@ -544,7 +655,7 @@
         const eventBody = msg.eventBody
         if (!eventBody) return
 
-        console.log('Conversation state change:', eventBody)
+        debugLog(`Conversation state change detected`)
 
         // Check if conversation has ended
         if (eventBody.participants) {
@@ -557,7 +668,7 @@
           })
 
           if (allDisconnected) {
-            console.log('Conversation ended - all participants disconnected')
+            debugLog('All participants disconnected - conversation ended')
             notification('Info', 'Conversation ended - stopping monitoring')
             updateStatus('Conversation ended - monitoring stopped', 'warning')
             stopMonitoring()
@@ -566,6 +677,7 @@
       }
 
       function stopMonitoring() {
+        debugLog('Stopping monitoring...')
         if (websocket) {
           websocket.close()
         }
