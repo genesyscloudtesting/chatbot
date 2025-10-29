@@ -558,7 +558,7 @@
           const text = alternatives[0].transcript || ''
           if (!text) return
 
-          const speaker = transcript.channel === 'internal' ? 'Agent' : 'Customer'
+          const speaker = transcript.channel === 'INTERNAL' ? 'Agent' : 'Customer'
           const textLower = text.toLowerCase()
 
           debugLog(`Transcript (${speaker}): ${text}`)
@@ -579,7 +579,7 @@
             alertsSent++
             document.getElementById('alertCount').textContent = alertsSent
             debugLog('Closing phrase detected WITHOUT survey mention - sending alert!')
-            showToast("Please say: I'd like to invite you to a quick 1-minute survey.")
+            showToast("Please mention survey to customer")
           }
         })
       }
@@ -758,7 +758,7 @@
       }
 
       function testAlert() {
-        showToast("Please say: I'd like to invite you to a quick 1-minute survey.")
+        showToast("Please mention survey to customer.")
       }
 
       function notification(type, message) {
