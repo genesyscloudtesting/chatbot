@@ -440,7 +440,7 @@
                 
                 if (detailedConv.participants && detailedConv.participants.length > 0) {
                   for (const participant of detailedConv.participants) {
-                    debugLog(`  Participant: ${participant.name} (${participant.purpose}) - User ID: ${participant.userId || 'N/A'}`)
+                    debugLog(`  Participant: ${participant.name} (${participant.purpose}) - User ID: ${participant.user.id || 'N/A'}`)
                     
                     if (participant.purpose === 'customer' || participant.purpose === 'external') {
                       customerName = participant.name || 'Customer'
@@ -450,7 +450,7 @@
                       agentName = participant.name || 'Agent'
                       
                       // Check if this is the current user
-                      if (participant.userId === currentUserId) {
+                      if (participant.user.id === currentUserId) {
                         isUserInConversation = true
                         userConversations.push(convId)
                         if (!userConversation) {
