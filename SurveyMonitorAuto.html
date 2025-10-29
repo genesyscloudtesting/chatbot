@@ -339,77 +339,9 @@
           
           debugLog('Fetching active conversations...')
           
-          // Try to get conversation from Client App context if in iframe
-          let contextConversationId = null
-          try {
-            if (window.location !== window.parent.location) {
-              debugLog('Running in iframe - trying to get context...')
-              // Try to get the current conversation context
-              const context = await myClientApp.lifecycle.bootstrapped()
-              debugLog(`Context received: ${JSON.stringify(context)}`)
-            }
-          } catch (e) {
-            debugLog('Not in iframe or context not available')
-          }
-
-          // Load active conversations using Analytics API for better data
-          const now = new Date()
-          const thirtyMinsAgo = new Date(now.getTime() - 30 * 60000)
-          
-          debugLog('Querying conversations...')
-          
-          // Use the conversations query API for better participant data
-          const queryBody = {
-            interval: `${thirtyMinsAgo.toISOString()}/${now.toISOString()}`,
-            order: "desc",
-            orderBy: "conversationStart",
-            paging: {
-              pageSize: 25,
-              pageNumber: 1
-            },
-            segmentFilters: [
-              {
-                type: "and",
-                predicates: [
-                  {
-                    dimension: "mediaType",
-                    value: "voice"
-                  }
-                ]
-              }
-            ]
-          }
-          
-          let conversationsList = []
-          
-          try {
-            const analyticsResponse = await conversationsApi.postAnalyticsConversationsDetailsQuery(queryBody)
-            debugLog(`Analytics query returned ${analyticsResponse.conversations?.length || 0} conversations`)
-            
-            if (analyticsResponse.conversations) {
-              // Filter for active conversations
-              conversationsList = analyticsResponse.conversations.filter(conv => {
-                // Check if any participant is still connected
-                const hasActiveParticipant = conv.participants?.some(p => 
-                  p.sessions?.some(s => !s.segments?.every(seg => seg.disconnectType))
-                )
-                return hasActiveParticipant
-              })
-              debugLog(`Filtered to ${conversationsList.length} active conversations`)
-            }
-          } catch (analyticsError) {
-            debugLog(`Analytics query failed: ${analyticsError.message}, falling back to basic API`)
-          }
-          
-          // Fallback to basic API if analytics fails
-          if (conversationsList.length === 0) {
-            const response = await conversationsApi.getConversationsCalls({ pageSize: 25 })
-            debugLog(`Basic API returned ${response.entities?.length || 0} conversations`)
-            
-            if (response.entities) {
-              conversationsList = response.entities
-            }
-          }
+          // Load active conversations
+          const response = await conversationsApi.getConversationsCalls({ pageSize: 25 })
+          debugLog(`API returned ${response.entities?.length || 0} conversations`)
           
           // Populate dropdown and find user conversations
           const dropdown = document.getElementById('conversationList')
@@ -418,11 +350,11 @@
           let userConversation = null
           let userConversations = []
 
-          if (conversationsList.length > 0) {
-            debugLog(`Processing ${conversationsList.length} conversations...`)
+          if (response.entities && response.entities.length > 0) {
+            debugLog(`Processing ${response.entities.length} conversations...`)
             
-            for (const conv of conversationsList) {
-              const convId = conv.conversationId || conv.id
+            for (const conv of response.entities) {
+              const convId = conv.id
               
               // Fetch detailed conversation info to get participant data
               try {
@@ -440,7 +372,8 @@
                 
                 if (detailedConv.participants && detailedConv.participants.length > 0) {
                   for (const participant of detailedConv.participants) {
-                    debugLog(`  Participant: ${participant.name} (${participant.purpose}) - User ID: ${participant.user.id || 'N/A'}`)
+                    const userId = participant.user?.id || participant.userId
+                    debugLog(`  Participant: ${participant.name} (${participant.purpose}) - User ID: ${userId || 'N/A'}`)
                     
                     if (participant.purpose === 'customer' || participant.purpose === 'external') {
                       customerName = participant.name || 'Customer'
@@ -450,7 +383,7 @@
                       agentName = participant.name || 'Agent'
                       
                       // Check if this is the current user
-                      if (participant.user.id === currentUserId) {
+                      if (userId === currentUserId) {
                         isUserInConversation = true
                         userConversations.push(convId)
                         if (!userConversation) {
@@ -464,7 +397,7 @@
                 
                 participantInfo = `${agentName} - ${customerName}`
                 
-                const startTime = new Date(detailedConv.conversationStart || conv.conversationStart).toLocaleTimeString('en-AU')
+                const startTime = new Date(detailedConv.conversationStart).toLocaleTimeString('en-AU')
                 option.innerHTML = `${convId.substring(0, 8)}... | ${startTime} | ${participantInfo}${isUserInConversation ? ' ⭐ (You)' : ''}`
                 dropdown.appendChild(option)
               } catch (detailError) {
@@ -487,7 +420,7 @@
               document.getElementById('stopBtn').disabled = false
             } else {
               debugLog('No conversations found with current user as participant')
-              notification('Info', `Found ${conversationsList.length} active conversations (none with you as participant)`)
+              notification('Info', `Found ${response.entities.length} active conversations (none with you as participant)`)
               updateStatus('No active conversations found for you - Select one to monitor', 'info')
             }
           } else {
@@ -548,17 +481,17 @@
           channelId = channel.id
           debugLog(`Channel created: ${channelId}`)
 
-          // 2) Subscribe to both transcription AND conversation state changes
+          // 2) Subscribe to transcription AND user's conversation events - FIXED TOPICS
           const transcriptionTopic = `v2.conversations.${conversationId}.transcription`
-          const conversationTopic = `v2.conversations.calls.${conversationId}`
+          const userConversationsTopic = `v2.users.${currentUserId}.conversations.calls`
           
           debugLog(`Subscribing to topics:`)
           debugLog(`  - ${transcriptionTopic}`)
-          debugLog(`  - ${conversationTopic}`)
+          debugLog(`  - ${userConversationsTopic}`)
           
           await notificationsApi.postNotificationsChannelSubscriptions(channelId, [
             { id: transcriptionTopic },
-            { id: conversationTopic }
+            { id: userConversationsTopic }
           ])
 
           updateStatus('Opening WebSocket connection...', 'info')
@@ -588,9 +521,9 @@
               handleTranscriptionMessage(msg)
             }
             
-            // Handle conversation state changes
-            if (msg.topicName && msg.topicName.includes('conversations.calls')) {
-              handleConversationStateChange(msg)
+            // Handle user's conversation state changes
+            if (msg.topicName && msg.topicName.includes('users') && msg.topicName.includes('conversations.calls')) {
+              handleUserConversationStateChange(msg)
             }
           }
 
@@ -651,18 +584,33 @@
         })
       }
 
-      function handleConversationStateChange(msg) {
+      function handleUserConversationStateChange(msg) {
         const eventBody = msg.eventBody
         if (!eventBody) return
 
-        debugLog(`Conversation state change detected`)
+        debugLog(`User conversation state change: ${JSON.stringify(eventBody)}`)
 
-        // Check if conversation has ended
+        // Check if this is about our monitored conversation
+        const conversationId = eventBody.id || eventBody.conversationId
+        
+        if (conversationId !== currentConversationId) {
+          debugLog(`State change for different conversation: ${conversationId}`)
+          return
+        }
+
+        debugLog(`State change for monitored conversation: ${conversationId}`)
+
+        // Check if conversation has ended by looking at participant states
         if (eventBody.participants) {
-          // Check if all participants are disconnected
           const allDisconnected = eventBody.participants.every(p => {
+            // Check calls array
             if (p.calls && p.calls.length > 0) {
-              return p.calls.every(call => call.state === 'disconnected')
+              const allCallsDisconnected = p.calls.every(call => {
+                const isDisconnected = call.state === 'disconnected' || call.disconnectType
+                debugLog(`  Call state: ${call.state}, disconnectType: ${call.disconnectType || 'none'}`)
+                return isDisconnected
+              })
+              return allCallsDisconnected
             }
             return true
           })
