@@ -401,7 +401,7 @@
               const text = alternatives[0].transcript || ''
               if (!text) return
 
-              const speaker = transcript.channel === 'internal' ? 'Agent' : 'Customer'
+              const speaker = transcript.channel === 'INTERNAL' ? 'Agent' : 'Customer'
               const textLower = text.toLowerCase()
 
               // Add to display
