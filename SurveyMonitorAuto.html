@@ -193,6 +193,41 @@
         max-height: 150px;
         overflow-y: auto;
       }
+      /* Large modal alert style */
+      .large-alert-modal {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: #ff6b6b;
+        color: white;
+        padding: 40px 60px;
+        border-radius: 16px;
+        font-size: 28px;
+        font-weight: bold;
+        z-index: 10000;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        text-align: center;
+        animation: modalPulse 1s infinite;
+        min-width: 400px;
+      }
+      @keyframes modalPulse {
+        0%, 100% {
+          transform: translate(-50%, -50%) scale(1);
+        }
+        50% {
+          transform: translate(-50%, -50%) scale(1.05);
+        }
+      }
+      .large-alert-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 9999;
+      }
     </style>
   </head>
   <body onload="start()">
@@ -302,6 +337,7 @@
       let durationInterval = null
       let currentConversationId = null
       let currentUserId = null
+      let inSalesforce = false
 
       // Keywords to detect
       const surveyKeywords = /survey|feedback|questionnaire|rate your experience|quick questions|how did we do|satisfaction/i
@@ -334,8 +370,113 @@
         debugSection.style.display = debugSection.style.display === 'none' ? 'block' : 'none'
       }
 
+      // Detect if running in Salesforce
+      function detectSalesforce() {
+        // Check for Salesforce Lightning (sforce is available)
+        if (typeof sforce !== 'undefined' && sforce.one) {
+          inSalesforce = true
+          debugLog('✓ Detected Salesforce Lightning environment')
+          return true
+        }
+        
+        // Check for Salesforce Classic with Open CTI
+        if (typeof sforce !== 'undefined' && sforce.opencti) {
+          inSalesforce = true
+          debugLog('✓ Detected Salesforce Classic with Open CTI')
+          return true
+        }
+        
+        // Check if in Salesforce iframe by domain
+        try {
+          if (window.location.hostname.includes('salesforce.com') || 
+              window.location.hostname.includes('force.com') ||
+              window.location.hostname.includes('my.salesforce.com')) {
+            inSalesforce = true
+            debugLog('✓ Detected Salesforce by domain')
+            return true
+          }
+        } catch (e) {
+          debugLog('Could not check domain for Salesforce detection')
+        }
+        
+        debugLog('Not running in Salesforce environment')
+        return false
+      }
+
+      // Show Salesforce Toast Notification
+      function showSalesforceToast(title, message, variant) {
+        try {
+          if (typeof sforce !== 'undefined' && sforce.one) {
+            debugLog(`Showing Salesforce Lightning toast: ${title} - ${message}`)
+            
+            // Salesforce Lightning toast
+            sforce.one.showToast({
+              title: title,
+              message: message,
+              type: variant, // 'error', 'warning', 'success', 'info'
+              mode: 'sticky', // 'sticky' stays until dismissed, 'dismissible' auto-hides
+              duration: 10000 // milliseconds (if dismissible)
+            })
+            
+            return true
+          } else if (typeof sforce !== 'undefined' && sforce.opencti) {
+            debugLog(`Showing Salesforce Classic alert: ${message}`)
+            
+            // Salesforce Classic - use screenpop or notify
+            sforce.opencti.screenPop({
+              type: sforce.opencti.SCREENPOP_TYPE.ALERT,
+              params: {
+                message: `${title}: ${message}`
+              }
+            })
+            
+            return true
+          }
+        } catch (error) {
+          debugLog(`Error showing Salesforce toast: ${error.message}`)
+        }
+        
+        return false
+      }
+
+      // Show large modal alert that can't be missed
+      function showLargeModalAlert(message) {
+        debugLog(`Showing large modal alert: ${message}`)
+        
+        // Create overlay
+        const overlay = document.createElement('div')
+        overlay.className = 'large-alert-overlay'
+        overlay.id = 'alertOverlay'
+        
+        // Create modal
+        const modal = document.createElement('div')
+        modal.className = 'large-alert-modal'
+        modal.innerHTML = `
+          <div style="font-size: 48px; margin-bottom: 20px;">⚠️</div>
+          <div>${message}</div>
+        `
+        
+        document.body.appendChild(overlay)
+        document.body.appendChild(modal)
+        
+        // Auto-remove after 8 seconds
+        setTimeout(() => {
+          overlay.remove()
+          modal.remove()
+        }, 8000)
+        
+        // Click to dismiss
+        overlay.onclick = () => {
+          overlay.remove()
+          modal.remove()
+        }
+      }
+
       async function start() {
         try {
+          // Detect Salesforce environment
+          detectSalesforce()
+          
           client.setEnvironment(gc_region)
           client.setPersistSettings(true, '_survey_monitor_')
 
@@ -639,7 +780,7 @@
 
         debugLog(`State change for monitored conversation: ${conversationId}`)
 
-        // FIXED: Check if the current user (agent) has disconnected, not all participants
+        // Check if the current user (agent) has disconnected
         if (eventBody.participants) {
           let currentUserParticipant = null
           let participantStates = []
@@ -762,21 +903,37 @@
       }
 
       function showToast(message) {
+        // Multi-layered alert system
+        
+        // 1. Try Salesforce toast first (if in Salesforce)
+        if (inSalesforce) {
+          const salesforceShown = showSalesforceToast(
+            '⚠️ Survey Reminder',
+            message,
+            'warning'
+          )
+          
+          if (salesforceShown) {
+            debugLog('Alert displayed via Salesforce toast')
+          }
+        }
+        
+        // 2. Show large modal alert (always, can't be missed)
+        showLargeModalAlert(message)
+        
+        // 3. Show in-app toast
         const toast = document.getElementById('toast')
         const toastMessage = document.getElementById('toastMessage')
-
         toastMessage.textContent = message
         toast.style.display = 'block'
-
-        // Auto-hide after 10 seconds
         setTimeout(() => {
           toast.style.display = 'none'
         }, 10000)
-
-        // Play audio alert
+        
+        // 4. Play audio alert
         playAlertSound(message)
         
-        // Show toast notification if in iframe
+        // 5. Show Genesys Cloud toast if in iframe
         notification('Warning', message)
       }
 
