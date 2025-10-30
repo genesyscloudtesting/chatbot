@@ -339,9 +339,13 @@
           client.setEnvironment(gc_region)
           client.setPersistSettings(true, '_survey_monitor_')
 
-          debugLog('Logging in to Genesys Cloud...')
+          console.log('%cLogging in to Genesys Cloud using Implicit Grant', 'color: green')
+          debugLog('Authenticating with Genesys Cloud...')
+          
+          // Use Implicit Grant for OAuth authentication (required for API access)
           await client.loginImplicitGrant(gc_clientId, gc_redirectUrl, {})
           
+          debugLog('Successfully authenticated with Implicit Grant')
           notification('Success', 'Successfully authenticated to Genesys Cloud')
           updateStatus('Authenticated - Looking for active conversations...', 'success')
           
@@ -598,7 +602,7 @@
           // Add to display
           addTranscriptLine(speaker, text)
 
-          // FIXED: Only check for keywords if AGENT (INTERNAL channel) spoke
+          // Only check for keywords if AGENT (INTERNAL channel) spoke
           if (transcript.channel === 'INTERNAL') {
             // Check for survey mention
             if (surveyKeywords.test(textLower)) {
@@ -635,30 +639,35 @@
 
         debugLog(`State change for monitored conversation: ${conversationId}`)
 
-        // Check participant state directly
+        // FIXED: Check if the current user (agent) has disconnected, not all participants
         if (eventBody.participants) {
+          let currentUserParticipant = null
           let participantStates = []
           
-          // Log all participant states for debugging
+          // Find the current user's participant record
           eventBody.participants.forEach(p => {
             const state = p.state || 'unknown'
             const purpose = p.purpose || 'unknown'
+            const userId = p.user?.id || p.userId
+            
             participantStates.push(`${purpose}:${state}`)
-            debugLog(`  Participant ${purpose}: state=${state}, muted=${p.muted}`)
+            debugLog(`  Participant ${purpose}: state=${state}, userId=${userId}, muted=${p.muted}`)
+            
+            // Check if this is the current user
+            if (userId === currentUserId) {
+              currentUserParticipant = p
+              debugLog(`  ✓ Found current user participant: state=${state}`)
+            }
           })
 
-          // Only consider conversation ended if ALL participants are 'disconnected'
-          const allDisconnected = eventBody.participants.every(p => p.state === 'disconnected')
-
-          debugLog(`  All participants disconnected? ${allDisconnected} (states: ${participantStates.join(', ')})`)
-
-          if (allDisconnected) {
-            debugLog('✓ All participants disconnected - conversation ended')
-            notification('Info', 'Conversation ended - stopping monitoring')
-            updateStatus('Conversation ended - monitoring stopped', 'warning')
+          // If current user (agent) has disconnected, close the websocket
+          if (currentUserParticipant && currentUserParticipant.state === 'disconnected') {
+            debugLog('✓ Current user (agent) has disconnected - closing monitoring')
+            notification('Info', 'You have left the conversation - stopping monitoring')
+            updateStatus('Agent disconnected - monitoring stopped', 'warning')
             stopMonitoring()
           } else {
-            debugLog('  Conversation still active (mute/unmute or other state change)')
+            debugLog(`  Current user still connected (states: ${participantStates.join(', ')})`)
           }
         }
       }
