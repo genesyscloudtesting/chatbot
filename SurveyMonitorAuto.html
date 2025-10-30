@@ -303,6 +303,9 @@
       let currentConversationId = null
       let currentUserId = null
 
+      // Audio notification settings
+      const AUDIO_NOTIFICATION_URL = 'https://genesyscloudtesting.github.io/chatbot/surveynotification.wav'
+
       // Keywords to detect
       const surveyKeywords = /survey|feedback|questionnaire|rate your experience|quick questions|how did we do|satisfaction/i
       const closingPhrases = /before i let you go|anything else i can help with|thanks for your time|thank you for calling|have a (great|good|nice) day|we're all set|is that everything|take care/i
@@ -639,7 +642,7 @@
 
         debugLog(`State change for monitored conversation: ${conversationId}`)
 
-        // FIXED: Check if the current user (agent) has disconnected, not all participants
+        // Check if the current user (agent) has disconnected
         if (eventBody.participants) {
           let currentUserParticipant = null
           let participantStates = []
@@ -781,7 +784,35 @@
       }
 
       function playAlertSound(message) {
+        debugLog('Attempting to play audio notification...')
+        
+        // Try to play WAV file first
+        const audio = new Audio(AUDIO_NOTIFICATION_URL)
+        
+        // Set up success handler
+        audio.oncanplaythrough = () => {
+          debugLog('✓ WAV file loaded successfully, playing...')
+        }
+        
+        // Set up error handler to fall back to speech synthesis
+        audio.onerror = (error) => {
+          debugLog(`⚠️ WAV file failed to load: ${error.type}. Falling back to speech synthesis...`)
+          playSpeechSynthesis(message)
+        }
+        
+        // Attempt to play the audio
+        audio.play().then(() => {
+          debugLog('✓ WAV file playing successfully')
+        }).catch((error) => {
+          debugLog(`⚠️ WAV file playback failed: ${error.message}. Falling back to speech synthesis...`)
+          playSpeechSynthesis(message)
+        })
+      }
+
+      function playSpeechSynthesis(message) {
         if ('speechSynthesis' in window) {
+          debugLog('Playing speech synthesis fallback...')
+          
           // Cancel any ongoing speech
           window.speechSynthesis.cancel()
 
@@ -791,7 +822,17 @@
           utterance.volume = 1.0
           utterance.lang = 'en-AU'
 
+          utterance.onstart = () => {
+            debugLog('✓ Speech synthesis started')
+          }
+
+          utterance.onerror = (error) => {
+            debugLog(`⚠️ Speech synthesis error: ${error.error}`)
+          }
+
           window.speechSynthesis.speak(utterance)
+        } else {
+          debugLog('⚠️ Speech synthesis not supported in this browser')
         }
       }
 
