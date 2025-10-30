@@ -339,8 +339,16 @@
           client.setEnvironment(gc_region)
           client.setPersistSettings(true, '_survey_monitor_')
 
-          debugLog('Logging in to Genesys Cloud...')
-          await client.loginImplicitGrant(gc_clientId, gc_redirectUrl, {})
+          console.log('%cObtaining Genesys Cloud session token', 'color: green')
+          debugLog('Obtaining Genesys Cloud session token from parent iframe...')
+          
+          // Get the authenticated token from the parent Genesys Cloud session
+          const bootstrapData = await myClientApp.lifecycle.bootstrapped()
+          debugLog('Bootstrap data received', bootstrapData)
+          
+          // Set the token in the Platform Client
+          client.setAccessToken(bootstrapData.pcToken)
+          debugLog('Access token set successfully')
           
           notification('Success', 'Successfully authenticated to Genesys Cloud')
           updateStatus('Authenticated - Looking for active conversations...', 'success')
@@ -598,7 +606,7 @@
           // Add to display
           addTranscriptLine(speaker, text)
 
-          // FIXED: Only check for keywords if AGENT (INTERNAL channel) spoke
+          // Only check for keywords if AGENT (INTERNAL channel) spoke
           if (transcript.channel === 'INTERNAL') {
             // Check for survey mention
             if (surveyKeywords.test(textLower)) {
