@@ -346,7 +346,7 @@
           btnEl.style.display = 'none'
           debugLog('Browser notifications not supported')
         } else if (Notification.permission === 'granted') {
-          textEl.textContent = '✅ Browser notifications enabled (auto-close after 30 seconds)'
+          textEl.textContent = '✅ Browser notifications enabled (popup shows for 30 seconds)'
           statusEl.className = 'notification-status granted'
           btnEl.style.display = 'none'
           debugLog('Browser notifications permission: granted')
@@ -377,7 +377,7 @@
           if (permission === 'granted') {
             notification('Success', 'Browser notifications enabled!')
             // Show a test notification
-            showBrowserNotification('Survey Monitor', 'Notifications are now enabled and will auto-close after 30 seconds', 'success')
+            showBrowserNotification('Survey Monitor', 'Notifications enabled! Popups will auto-dismiss after 30 seconds', 'success')
           } else if (permission === 'denied') {
             notification('Warning', 'Browser notifications were blocked. You can enable them in your browser settings.')
           }
@@ -402,27 +402,44 @@
             body: message,
             icon: '/api/placeholder/128/128', // Placeholder icon
             badge: '/api/placeholder/96/96',
-            tag: 'survey-monitor-alert', // Prevents duplicate notifications
-            requireInteraction: false, // Allow auto-close
+            tag: 'survey-monitor-alert', // Replaces previous notification instead of stacking
+            requireInteraction: true, // Forces the popup to show (not just Action Center)
             silent: false,
             timestamp: Date.now()
           }
 
           const browserNotification = new Notification(title, notificationOptions)
           
-          // Click handler to focus window
+          debugLog(`Browser notification created: ${title} - ${message}`)
+          
+          // Click handler to focus window and close notification
           browserNotification.onclick = function() {
+            debugLog('Notification clicked - focusing window')
             window.focus()
             this.close()
           }
 
-          // Auto-close after 30 seconds
+          // Error handler
+          browserNotification.onerror = function(error) {
+            debugLog(`Notification error: ${error}`)
+          }
+
+          // Close handler
+          browserNotification.onclose = function() {
+            debugLog('Notification closed')
+          }
+
+          // Auto-close after 30 seconds (even with requireInteraction: true)
           setTimeout(() => {
-            browserNotification.close()
-            debugLog(`Browser notification auto-closed after 30 seconds: ${title}`)
+            try {
+              browserNotification.close()
+              debugLog(`Browser notification auto-closed after 30 seconds: ${title}`)
+            } catch (e) {
+              debugLog(`Error closing notification: ${e.message}`)
+            }
           }, 30000)
 
-          debugLog(`Browser notification shown (will auto-close in 30s): ${title} - ${message}`)
+          debugLog(`Browser notification shown (will auto-close in 30s): ${title}`)
         } catch (error) {
           debugLog(`Error showing browser notification: ${error.message}`)
           console.error('Error showing browser notification:', error)
