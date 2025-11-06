@@ -165,6 +165,28 @@
         font-size: 14px;
         color: #004085;
       }
+      .notification-status {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 6px;
+        padding: 12px;
+        margin-bottom: 15px;
+        font-size: 13px;
+        color: #856404;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .notification-status.granted {
+        background: #d4edda;
+        border-color: #c3e6cb;
+        color: #155724;
+      }
+      .notification-status.denied {
+        background: #f8d7da;
+        border-color: #f5c6cb;
+        color: #721c24;
+      }
       .debug-section {
         background: #f0f0f0;
         border: 1px solid #ccc;
@@ -206,6 +228,11 @@
         <div class="info-box" id="statusBox">
           <span class="status-indicator inactive" id="statusIndicator"></span>
           <span id="statusText">Not connected - Please authenticate</span>
+        </div>
+
+        <div class="notification-status" id="notificationStatus">
+          <span id="notificationText">🔔 Browser notifications not enabled</span>
+          <gux-button accent="secondary" onclick="requestNotificationPermission()" id="enableNotificationsBtn">Enable Notifications</gux-button>
         </div>
 
         <div class="control-row">
@@ -307,6 +334,99 @@
       const surveyKeywords = /survey|feedback|questionnaire|rate your experience|quick questions|how did we do|satisfaction/i
       const closingPhrases = /before i let you go|anything else i can help with|thanks for your time|thank you for calling|have a (great|good|nice) day|we're all set|is that everything|take care/i
 
+      // Browser Notification Functions
+      function updateNotificationStatus() {
+        const statusEl = document.getElementById('notificationStatus')
+        const textEl = document.getElementById('notificationText')
+        const btnEl = document.getElementById('enableNotificationsBtn')
+        
+        if (!('Notification' in window)) {
+          textEl.textContent = '🔕 Browser notifications not supported'
+          statusEl.className = 'notification-status denied'
+          btnEl.style.display = 'none'
+          debugLog('Browser notifications not supported')
+        } else if (Notification.permission === 'granted') {
+          textEl.textContent = '✅ Browser notifications enabled'
+          statusEl.className = 'notification-status granted'
+          btnEl.style.display = 'none'
+          debugLog('Browser notifications permission: granted')
+        } else if (Notification.permission === 'denied') {
+          textEl.textContent = '❌ Browser notifications blocked (check browser settings)'
+          statusEl.className = 'notification-status denied'
+          btnEl.style.display = 'none'
+          debugLog('Browser notifications permission: denied')
+        } else {
+          textEl.textContent = '🔔 Click to enable browser notifications for alerts'
+          statusEl.className = 'notification-status'
+          btnEl.style.display = 'block'
+          debugLog('Browser notifications permission: default (not requested yet)')
+        }
+      }
+
+      function requestNotificationPermission() {
+        if (!('Notification' in window)) {
+          notification('Error', 'Browser notifications are not supported')
+          return
+        }
+
+        debugLog('Requesting notification permission...')
+        Notification.requestPermission().then(permission => {
+          debugLog(`Notification permission: ${permission}`)
+          updateNotificationStatus()
+          
+          if (permission === 'granted') {
+            notification('Success', 'Browser notifications enabled!')
+            // Show a test notification
+            showBrowserNotification('Survey Monitor', 'Notifications are now enabled', 'success')
+          } else if (permission === 'denied') {
+            notification('Warning', 'Browser notifications were blocked. You can enable them in your browser settings.')
+          }
+        })
+      }
+
+      function showBrowserNotification(title, message, type = 'warning') {
+        if (!('Notification' in window)) {
+          debugLog('Browser notifications not supported')
+          return
+        }
+
+        if (Notification.permission !== 'granted') {
+          debugLog(`Cannot show notification - permission is: ${Notification.permission}`)
+          return
+        }
+
+        try {
+          const icon = type === 'success' ? '✅' : type === 'warning' ? '⚠️' : 'ℹ️'
+          
+          const notificationOptions = {
+            body: message,
+            icon: '/api/placeholder/128/128', // Placeholder icon
+            badge: '/api/placeholder/96/96',
+            tag: 'survey-monitor-alert', // Prevents duplicate notifications
+            requireInteraction: type === 'warning', // Keep warning notifications until dismissed
+            silent: false,
+            timestamp: Date.now()
+          }
+
+          const browserNotification = new Notification(title, notificationOptions)
+          
+          browserNotification.onclick = function() {
+            window.focus()
+            this.close()
+          }
+
+          // Auto-close success notifications after 10 seconds
+          if (type === 'success') {
+            setTimeout(() => browserNotification.close(), 10000)
+          }
+
+          debugLog(`Browser notification shown: ${title} - ${message}`)
+        } catch (error) {
+          debugLog(`Error showing browser notification: ${error.message}`)
+          console.error('Error showing browser notification:', error)
+        }
+      }
+
       function debugLog(message, jsonData = null) {
         console.log(message)
         const debugContent = document.getElementById('debugContent')
@@ -336,6 +456,9 @@
 
       async function start() {
         try {
+          // Check and update notification status on page load
+          updateNotificationStatus()
+          
           client.setEnvironment(gc_region)
           client.setPersistSettings(true, '_survey_monitor_')
 
@@ -354,6 +477,14 @@
           currentUserId = userInfo.id
           debugLog(`Current User ID: ${currentUserId}`)
           debugLog(`Current User Name: ${userInfo.name}`)
+          
+          // Auto-request notification permission after successful authentication
+          if (Notification.permission === 'default') {
+            setTimeout(() => {
+              debugLog('Auto-requesting notification permission...')
+              requestNotificationPermission()
+            }, 2000) // Wait 2 seconds after auth to request
+          }
           
           // Auto-start monitoring for active conversations
           await autoStartMonitoring()
@@ -778,6 +909,9 @@
         
         // Show toast notification if in iframe
         notification('Warning', message)
+        
+        // Show browser notification
+        showBrowserNotification('⚠️ Survey Reminder', message, 'warning')
       }
 
       function playAlertSound(message) {
