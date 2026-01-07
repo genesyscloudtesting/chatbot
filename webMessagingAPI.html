@@ -155,7 +155,7 @@
     <div class="position-fixed bottom-0 end-0 p-5" style="max-width: 150px">
         <div id="chatButton" class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
             <button type="button" class="btn btn-primary" style="width: 100%" onclick="openChat()">
-                <img src="./docs/images/chatIcon.svg">
+                <img src="chatIcon.svg">
             </button>
         </div>
     </div>
@@ -164,10 +164,10 @@
     <div class="position-fixed bottom-0 end-0 p-4" style="z-index: 11">
         <div id="widget" class="toast hide" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="toast-header">
-                <img class="w-25 p-3" src="./docs/images/chatIcon.svg">
+                <img class="w-25 p-3" src="chatIcon.svg">
                 <h3 class="me-auto" style="color: black;">Web Messaging</h3>
                 <button type="button" class="m-2 btn btn-light btn-sm" onclick="closeChat()">
-                    <img src="./docs/images/close.svg">
+                    <img src="close.svg">
                 </button>
             </div>
             <div class="progress" style="height: 3px;">
@@ -181,16 +181,16 @@
                     <input id="message" class="m-1 form-control" placeholder="Enter message..."
                         aria-label="message"></input>
                     <button type="button" class="m-1 btn btn-light btn-sm" id="emojiButton" onclick="openEmojis()">
-                        <img src="./docs/images/emoji.svg">
+                        <img src="emoji.svg">
                     </button>
                     <label type="button" class="m-1 btn btn-secondary btn-sm position-relative" style="width: 55px">
-                        <img class="position-absolute top-50 start-50 translate-middle" src="./docs/images/image.svg">
+                        <img class="position-absolute top-50 start-50 translate-middle" src="image.svg">
                         <input class="form-control form-control-sm form-file-button-color-blue" id="formFileSm"
                             type="file" onchange="fileStatus()" hidden>
                     </label>
                     <button type="button" class="m-1 btn btn-success btn-sm" id="sendButton"
                         onclick="wssSend(document.getElementById('message').value)">
-                        <img src="./docs/images/send.svg">
+                        <img src="send.svg">
                     </button>
                 </div>
                 <div id="imageAttached" hidden>
