@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genesys Cloud Messenger - Custom UI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 500px;
+            height: 600px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: #667eea;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .chat-status {
+            background: #f7f7f7;
+            padding: 10px 20px;
+            font-size: 12px;
+            color: #666;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f9f9f9;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message.user {
+            align-items: flex-end;
+        }
+
+        .message.agent {
+            align-items: flex-start;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            word-wrap: break-word;
+        }
+
+        .message.user .message-content {
+            background: #667eea;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.agent .message-content {
+            background: white;
+            color: #333;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .message-sender {
+            font-size: 11px;
+            color: #999;
+            margin-bottom: 4px;
+            padding: 0 8px;
+        }
+
+        .message-time {
+            font-size: 10px;
+            color: #999;
+            margin-top: 4px;
+            padding: 0 8px;
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 24px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .chat-input:focus {
+            border-color: #667eea;
+        }
+
+        .send-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 24px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .send-button:hover {
+            background: #5568d3;
+        }
+
+        .send-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .config-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .config-input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .init-button {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .init-button:hover {
+            background: #218838;
+        }
+
+        .typing-indicator {
+            display: none;
+            padding: 10px 20px;
+            font-size: 12px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .typing-indicator.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div style="width: 100%; max-width: 500px;">
+        <div class="config-panel" id="configPanel">
+            <h3 style="margin-bottom: 15px; color: #333;">Genesys Cloud Configuration</h3>
+            <input type="text" id="deploymentId" class="config-input" placeholder="Deployment ID" />
+            <input type="text" id="region" class="config-input" placeholder="Region (e.g., mypurecloud.com.au)" />
+            <button class="init-button" onclick="initializeMessenger()">Initialize Messenger</button>
+        </div>
+
+        <div class="chat-container" id="chatContainer" style="display: none;">
+            <div class="chat-header">
+                Genesys Cloud Support
+            </div>
+            <div class="chat-status" id="chatStatus">
+                Status: Not connected
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="message agent">
+                    <span class="message-sender">System</span>
+                    <div class="message-content">Welcome! How can we help you today?</div>
+                </div>
+            </div>
+            <div class="typing-indicator" id="typingIndicator">
+                Agent is typing...
+            </div>
+            <div class="chat-input-container">
+                <input type="text" class="chat-input" id="messageInput" placeholder="Type your message..." />
+                <button class="send-button" id="sendButton" onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let messenger;
+        let isConnected = false;
+
+        // Initialize the Genesys Cloud Messenger
+        function initializeMessenger() {
+            const deploymentId = document.getElementById('deploymentId').value.trim();
+            const region = document.getElementById('region').value.trim();
+
+            if (!deploymentId || !region) {
+                alert('Please enter both Deployment ID and Region');
+                return;
+            }
+
+            // Load the Genesys Cloud Messenger SDK
+            (function (g, e, n, es, ys) {
+                g['_genesysJs'] = e;
+                g[e] = g[e] || function () {
+                    (g[e].q = g[e].q || []).push(arguments)
+                };
+                g[e].t = 1 * new Date();
+                g[e].c = es;
+                ys = document.createElement('script'); ys.async = 1; ys.src = n; ys.charset = 'utf-8'; document.head.appendChild(ys);
+            })(window, 'Genesys', `https://apps.${region}/genesys-bootstrap/genesys.min.js`, {
+                deploymentId: deploymentId,
+                debug: true
+            });
+
+            // Configure messenger for headless mode
+            Genesys('subscribe', 'Messenger.ready', function() {
+                updateStatus('Messenger ready');
+                
+                // Open the conversation programmatically
+                Genesys('command', 'Messenger.open', {}, function(o) {
+                    console.log('Messenger opened', o);
+                });
+
+                // Hide the default launcher
+                Genesys('command', 'Messenger.close', {}, function(o) {
+                    console.log('Default UI closed', o);
+                });
+
+                document.getElementById('configPanel').style.display = 'none';
+                document.getElementById('chatContainer').style.display = 'flex';
+                isConnected = true;
+            });
+
+            // Listen for incoming messages
+            Genesys('subscribe', 'MessagingService.messagesReceived', function(data) {
+                console.log('Messages received:', data);
+                if (data && data.messages) {
+                    data.messages.forEach(msg => {
+                        if (msg.direction === 'Inbound') {
+                            addMessage(msg.text, 'agent', msg.from?.nickname || 'Agent');
+                        }
+                    });
+                }
+            });
+
+            // Listen for typing indicators
+            Genesys('subscribe', 'MessagingService.typing', function(data) {
+                console.log('Typing event:', data);
+                const typingIndicator = document.getElementById('typingIndicator');
+                if (data && data.typing) {
+                    typingIndicator.classList.add('active');
+                } else {
+                    typingIndicator.classList.remove('active');
+                }
+            });
+
+            // Listen for conversation state changes
+            Genesys('subscribe', 'MessagingService.conversationDisconnected', function() {
+                updateStatus('Conversation disconnected');
+                isConnected = false;
+            });
+
+            Genesys('subscribe', 'MessagingService.conversationConnected', function() {
+                updateStatus('Connected');
+                isConnected = true;
+            });
+        }
+
+        // Send a message
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            if (!isConnected) {
+                alert('Not connected to messenger');
+                return;
+            }
+
+            // Send message through Genesys API
+            Genesys('command', 'MessagingService.sendMessage', {
+                message: message
+            }, function(o) {
+                if (o && o.error) {
+                    console.error('Error sending message:', o.error);
+                    alert('Failed to send message');
+                } else {
+                    addMessage(message, 'user', 'You');
+                    input.value = '';
+                }
+            });
+        }
+
+        // Add message to chat window
+        function addMessage(text, type, sender) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' });
+
+            messageDiv.innerHTML = `
+                <span class="message-sender">${sender}</span>
+                <div class="message-content">${escapeHtml(text)}</div>
+                <span class="message-time">${timeString}</span>
+            `;
+
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Update status
+        function updateStatus(status) {
+            const statusElement = document.getElementById('chatStatus');
+            statusElement.textContent = `Status: ${status}`;
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Allow sending message with Enter key
+        document.addEventListener('DOMContentLoaded', function() {
+            const input = document.getElementById('messageInput');
+            if (input) {
+                input.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        sendMessage();
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
