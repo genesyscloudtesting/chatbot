@@ -278,26 +278,11 @@
                     <li>Navigate to: Admin → Message → Messenger Configurations</li>
                     <li>Select or create a Messenger Configuration</li>
                     <li>Copy the Deployment Key (Deployment ID)</li>
-                    <li>Note your organisation's region</li>
                 </ol>
             </div>
 
             <div class="helper-text">Deployment ID:</div>
             <input type="text" id="deploymentId" class="config-input" placeholder="e.g., 12345678-abcd-1234-abcd-123456789012" />
-            
-            <div class="helper-text">Environment (Region):</div>
-            <select id="environment" class="config-input">
-                <option value="">Select your region</option>
-                <option value="mypurecloud.com">Americas (US East)</option>
-                <option value="mypurecloud.com.au">Asia Pacific (Sydney)</option>
-                <option value="mypurecloud.ie">EMEA (Ireland)</option>
-                <option value="mypurecloud.de">EMEA (Germany)</option>
-                <option value="mypurecloud.jp">Asia Pacific (Tokyo)</option>
-                <option value="usw2.pure.cloud">Americas (US West)</option>
-                <option value="cac1.pure.cloud">Canada (Toronto)</option>
-                <option value="apne2.pure.cloud">Asia Pacific (Seoul)</option>
-                <option value="euw2.pure.cloud">EMEA (London)</option>
-            </select>
             
             <button class="init-button" onclick="initializeMessenger()">Initialize Messenger</button>
             
@@ -327,6 +312,7 @@
         let isInitialized = false;
         let isConnected = false;
         let conversationStarted = false;
+        const ENVIRONMENT = 'prod-apse2';
 
         function showError(message) {
             const errorDiv = document.getElementById('errorMessage');
@@ -342,12 +328,11 @@
         // Initialize the Genesys Cloud Messenger
         function initializeMessenger() {
             const deploymentId = document.getElementById('deploymentId').value.trim();
-            const environment = document.getElementById('environment').value;
 
             hideError();
 
-            if (!deploymentId || !environment) {
-                showError('Please enter both Deployment ID and select an Environment');
+            if (!deploymentId) {
+                showError('Please enter a Deployment ID');
                 return;
             }
 
@@ -358,7 +343,7 @@
                 return;
             }
 
-            console.log('Initialising with:', { deploymentId, environment });
+            console.log('Initialising with:', { deploymentId, environment: ENVIRONMENT });
 
             // Show chat container
             document.getElementById('configPanel').style.display = 'none';
@@ -384,8 +369,8 @@
                         updateStatus('Error: Failed to load SDK');
                     };
                     document.head.appendChild(ys);
-                })(window, 'Genesys', `https://apps.${environment}/genesys-bootstrap/genesys.min.js`, {
-                    environment: environment,
+                })(window, 'Genesys', `https://apps.${ENVIRONMENT}/genesys-bootstrap/genesys.min.js`, {
+                    environment: ENVIRONMENT,
                     deploymentId: deploymentId
                 });
 
