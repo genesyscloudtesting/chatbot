@@ -195,21 +195,6 @@
             background: #218838;
         }
 
-        .reset-button {
-            background: #6c757d;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            font-size: 12px;
-            cursor: pointer;
-            width: 100%;
-        }
-
-        .reset-button:hover {
-            background: #5a6268;
-        }
-
         .typing-indicator {
             display: none;
             padding: 10px 20px;
@@ -282,7 +267,7 @@
             </div>
 
             <div class="helper-text">Deployment ID:</div>
-            <input type="text" id="deploymentId" class="config-input" placeholder="e.g., 12345678-abcd-1234-abcd-123456789012" />
+            <input type="text" id="deploymentId" class="config-input" placeholder="e.g., a1709d60-47e9-40d7-bfd6-a3e421776e05" />
             
             <button class="init-button" onclick="initializeMessenger()">Initialize Messenger</button>
             
@@ -313,6 +298,7 @@
         let isConnected = false;
         let conversationStarted = false;
         const ENVIRONMENT = 'prod-apse2';
+        const BOOTSTRAP_URL = 'https://apps.mypurecloud.com.au/genesys-bootstrap/genesys.min.js';
 
         function showError(message) {
             const errorDiv = document.getElementById('errorMessage');
@@ -339,7 +325,7 @@
             // Validate deployment ID format (should be a UUID)
             const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
             if (!uuidRegex.test(deploymentId)) {
-                showError('Deployment ID should be in UUID format (e.g., 12345678-abcd-1234-abcd-123456789012)');
+                showError('Deployment ID should be in UUID format (e.g., a1709d60-47e9-40d7-bfd6-a3e421776e05)');
                 return;
             }
 
@@ -369,7 +355,7 @@
                         updateStatus('Error: Failed to load SDK');
                     };
                     document.head.appendChild(ys);
-                })(window, 'Genesys', `https://apps.${ENVIRONMENT}/genesys-bootstrap/genesys.min.js`, {
+                })(window, 'Genesys', BOOTSTRAP_URL, {
                     environment: ENVIRONMENT,
                     deploymentId: deploymentId
                 });
