@@ -192,14 +192,31 @@
         .typing-indicator.active {
             display: block;
         }
+
+        .helper-text {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
     <div style="width: 100%; max-width: 500px;">
         <div class="config-panel" id="configPanel">
             <h3 style="margin-bottom: 15px; color: #333;">Genesys Cloud Configuration</h3>
-            <input type="text" id="deploymentId" class="config-input" placeholder="Deployment ID" />
-            <input type="text" id="region" class="config-input" placeholder="Region (e.g., mypurecloud.com.au)" />
+            <input type="text" id="deploymentId" class="config-input" placeholder="Deployment ID (e.g., 12345678-1234-1234-1234-123456789012)" />
+            <div class="helper-text">Environment (region):</div>
+            <select id="environment" class="config-input">
+                <option value="">Select environment</option>
+                <option value="mypurecloud.com">Americas (mypurecloud.com)</option>
+                <option value="mypurecloud.com.au">Asia Pacific (mypurecloud.com.au)</option>
+                <option value="mypurecloud.ie">EMEA Ireland (mypurecloud.ie)</option>
+                <option value="mypurecloud.de">EMEA Germany (mypurecloud.de)</option>
+                <option value="mypurecloud.jp">Asia Pacific Japan (mypurecloud.jp)</option>
+                <option value="usw2.pure.cloud">US West (usw2.pure.cloud)</option>
+                <option value="cac1.pure.cloud">Canada (cac1.pure.cloud)</option>
+                <option value="apne2.pure.cloud">Asia Pacific Seoul (apne2.pure.cloud)</option>
+            </select>
             <button class="init-button" onclick="initializeMessenger()">Initialize Messenger</button>
         </div>
 
@@ -233,12 +250,14 @@
         // Initialize the Genesys Cloud Messenger
         function initializeMessenger() {
             const deploymentId = document.getElementById('deploymentId').value.trim();
-            const region = document.getElementById('region').value.trim();
+            const environment = document.getElementById('environment').value;
 
-            if (!deploymentId || !region) {
-                alert('Please enter both Deployment ID and Region');
+            if (!deploymentId || !environment) {
+                alert('Please enter both Deployment ID and select an Environment');
                 return;
             }
+
+            updateStatus('Initialising...');
 
             // Load the Genesys Cloud Messenger SDK
             (function (g, e, n, es, ys) {
@@ -248,28 +267,34 @@
                 };
                 g[e].t = 1 * new Date();
                 g[e].c = es;
-                ys = document.createElement('script'); ys.async = 1; ys.src = n; ys.charset = 'utf-8'; document.head.appendChild(ys);
-            })(window, 'Genesys', `https://apps.${region}/genesys-bootstrap/genesys.min.js`, {
+                ys = document.createElement('script'); 
+                ys.async = 1; 
+                ys.src = n; 
+                ys.charset = 'utf-8'; 
+                ys.onerror = function() {
+                    alert('Failed to load Genesys SDK. Please check your configuration.');
+                    updateStatus('Failed to load SDK');
+                };
+                document.head.appendChild(ys);
+            })(window, 'Genesys', `https://apps.${environment}/genesys-bootstrap/genesys.min.js`, {
+                environment: environment,
                 deploymentId: deploymentId,
                 debug: true
             });
 
             // Configure messenger for headless mode
             Genesys('subscribe', 'Messenger.ready', function() {
-                updateStatus('Messenger ready');
+                console.log('Messenger ready');
+                updateStatus('Messenger ready - starting conversation');
                 
-                // Open the conversation programmatically
-                Genesys('command', 'Messenger.open', {}, function(o) {
-                    console.log('Messenger opened', o);
-                });
-
-                // Hide the default launcher
-                Genesys('command', 'Messenger.close', {}, function(o) {
-                    console.log('Default UI closed', o);
-                });
-
                 document.getElementById('configPanel').style.display = 'none';
                 document.getElementById('chatContainer').style.display = 'flex';
+            });
+
+            // Listen for conversation opened
+            Genesys('subscribe', 'Messenger.opened', function() {
+                console.log('Messenger opened');
+                updateStatus('Connected');
                 isConnected = true;
             });
 
@@ -278,7 +303,7 @@
                 console.log('Messages received:', data);
                 if (data && data.messages) {
                     data.messages.forEach(msg => {
-                        if (msg.direction === 'Inbound') {
+                        if (msg.direction === 'Inbound' && msg.type === 'Text') {
                             addMessage(msg.text, 'agent', msg.from?.nickname || 'Agent');
                         }
                     });
@@ -298,14 +323,27 @@
 
             // Listen for conversation state changes
             Genesys('subscribe', 'MessagingService.conversationDisconnected', function() {
+                console.log('Conversation disconnected');
                 updateStatus('Conversation disconnected');
-                isConnected = false;
             });
 
-            Genesys('subscribe', 'MessagingService.conversationConnected', function() {
-                updateStatus('Connected');
-                isConnected = true;
+            Genesys('subscribe', 'MessagingService.conversationCleared', function() {
+                console.log('Conversation cleared');
+                updateStatus('Conversation cleared');
             });
+
+            // Start the conversation automatically when ready
+            setTimeout(function() {
+                Genesys('command', 'Messenger.open', {}, function(o) {
+                    if (o && o.error) {
+                        console.error('Error opening messenger:', o.error);
+                    } else {
+                        console.log('Messenger opened successfully', o);
+                        isConnected = true;
+                        updateStatus('Connected');
+                    }
+                });
+            }, 1000);
         }
 
         // Send a message
@@ -315,10 +353,9 @@
 
             if (!message) return;
 
-            if (!isConnected) {
-                alert('Not connected to messenger');
-                return;
-            }
+            // Add message to UI immediately
+            addMessage(message, 'user', 'You');
+            input.value = '';
 
             // Send message through Genesys API
             Genesys('command', 'MessagingService.sendMessage', {
@@ -326,10 +363,9 @@
             }, function(o) {
                 if (o && o.error) {
                     console.error('Error sending message:', o.error);
-                    alert('Failed to send message');
+                    updateStatus('Error: ' + o.error);
                 } else {
-                    addMessage(message, 'user', 'You');
-                    input.value = '';
+                    console.log('Message sent successfully', o);
                 }
             });
         }
