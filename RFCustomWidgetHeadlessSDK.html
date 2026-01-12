@@ -297,6 +297,7 @@
         let isInitialized = false;
         let isConnected = false;
         let conversationStarted = false;
+        let displayedMessageIds = new Set();
         const ENVIRONMENT = 'prod-apse2';
         const BOOTSTRAP_URL = 'https://apps.mypurecloud.com.au/genesys-bootstrap/genesys.min.js';
 
@@ -387,9 +388,42 @@
                 console.log('MessagingService.messagesReceived', data);
                 if (data && data.messages) {
                     data.messages.forEach(msg => {
-                        // Only show inbound messages (from agent)
-                        if (msg.direction === 'Inbound' && msg.type === 'Text') {
-                            addMessage(msg.text || msg.body, 'agent', msg.from?.nickname || 'Agent');
+                        // Skip if we've already displayed this message
+                        if (displayedMessageIds.has(msg.id)) {
+                            return;
+                        }
+
+                        console.log('Processing message:', msg);
+
+                        // Handle both Text and Structured messages
+                        if (msg.type === 'Text' || msg.type === 'Structured') {
+                            const messageText = msg.text || msg.body;
+                            
+                            if (!messageText) {
+                                console.log('No text content in message');
+                                return;
+                            }
+
+                            // Check if message is from bot/agent (not from user)
+                            // Inbound = from agent/bot, Outbound = can also be from bot in some configs
+                            if (msg.direction === 'Inbound') {
+                                // Definitely from agent/bot
+                                addMessage(messageText, 'agent', msg.from?.nickname || 'Agent');
+                                displayedMessageIds.add(msg.id);
+                            } else if (msg.direction === 'Outbound') {
+                                // Check if it's from the bot (has 'from' field) vs user (no 'from' or originatingEntity)
+                                // Bot messages typically have msg.from or are marked with channel.from
+                                if (msg.from && msg.from.nickname) {
+                                    // This is from bot/agent
+                                    addMessage(messageText, 'agent', msg.from.nickname);
+                                    displayedMessageIds.add(msg.id);
+                                } else if (msg.channel && msg.channel.from && msg.channel.from.nickname) {
+                                    // Also from bot/agent
+                                    addMessage(messageText, 'agent', msg.channel.from.nickname);
+                                    displayedMessageIds.add(msg.id);
+                                }
+                                // If no 'from' information, it's likely the user's own message, skip it
+                            }
                         }
                     });
                 }
@@ -426,6 +460,7 @@
                 console.log('Conversation cleared', data);
                 updateStatus('Conversation cleared');
                 addSystemMessage('Conversation has been cleared.');
+                displayedMessageIds.clear();
             });
 
             // Error handling
