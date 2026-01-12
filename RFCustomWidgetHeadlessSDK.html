@@ -374,31 +374,12 @@
             // Messenger is ready
             Genesys('subscribe', 'Messenger.ready', function(data) {
                 console.log('Messenger.ready', data);
-                updateStatus('Messenger ready');
+                updateStatus('Messenger ready - Headless mode active');
                 isInitialized = true;
-                addSystemMessage('Connected to Genesys Cloud. Starting conversation...');
-                
-                // Open messenger to start conversation
-                Genesys('command', 'Messenger.open', {}, function(o) {
-                    console.log('Messenger.open result:', o);
-                });
-            });
-
-            // Messenger opened
-            Genesys('subscribe', 'Messenger.opened', function(data) {
-                console.log('Messenger.opened', data);
-                updateStatus('Connected and ready');
                 isConnected = true;
-                conversationStarted = true;
-                enableInput();
+                addSystemMessage('Connected to Genesys Cloud in headless mode.');
                 addSystemMessage('You can now start chatting!');
-            });
-
-            // Messenger closed
-            Genesys('subscribe', 'Messenger.closed', function(data) {
-                console.log('Messenger.closed', data);
-                updateStatus('Messenger closed');
-                disableInput();
+                enableInput();
             });
 
             // Messages received
@@ -425,6 +406,14 @@
                 }
             });
 
+            // Conversation started
+            Genesys('subscribe', 'MessagingService.conversationStarted', function(data) {
+                console.log('Conversation started', data);
+                updateStatus('Conversation started');
+                conversationStarted = true;
+                addSystemMessage('Conversation has started.');
+            });
+
             // Conversation events
             Genesys('subscribe', 'MessagingService.conversationDisconnected', function(data) {
                 console.log('Conversation disconnected', data);
@@ -432,11 +421,23 @@
                 addSystemMessage('Conversation has been disconnected.');
             });
 
+            // Conversation cleared
+            Genesys('subscribe', 'MessagingService.conversationCleared', function(data) {
+                console.log('Conversation cleared', data);
+                updateStatus('Conversation cleared');
+                addSystemMessage('Conversation has been cleared.');
+            });
+
             // Error handling
             Genesys('subscribe', 'Launcher.error', function(error) {
                 console.error('Launcher error:', error);
                 addSystemMessage('Error: ' + (error.message || 'An error occurred'));
                 updateStatus('Error occurred');
+            });
+
+            // Message sent
+            Genesys('subscribe', 'MessagingService.messageSent', function(data) {
+                console.log('Message sent', data);
             });
         }
 
