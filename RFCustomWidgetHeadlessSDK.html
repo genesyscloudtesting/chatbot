@@ -127,6 +127,80 @@
             font-size: 12px;
         }
 
+        .message-attachment {
+            max-width: 70%;
+            margin-top: 8px;
+        }
+
+        .message.user .message-attachment {
+            align-self: flex-end;
+        }
+
+        .message.agent .message-attachment {
+            align-self: flex-start;
+        }
+
+        .attachment-preview {
+            max-width: 100%;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .attachment-preview img {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 8px;
+            display: block;
+        }
+
+        .attachment-file {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .attachment-file:hover {
+            background: #f5f5f5;
+        }
+
+        .attachment-icon {
+            width: 32px;
+            height: 32px;
+            background: #667eea;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .attachment-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .attachment-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: #333;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .attachment-size {
+            font-size: 11px;
+            color: #999;
+        }
+
         .message-time {
             font-size: 10px;
             color: #999;
@@ -165,6 +239,64 @@
             padding: 20px;
             background: white;
             border-top: 1px solid #e0e0e0;
+        }
+
+        .attachment-preview-bar {
+            display: none;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        .attachment-preview-bar.active {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .attachment-preview-bar img {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+
+        .attachment-preview-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .attachment-preview-name {
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .attachment-preview-size {
+            font-size: 10px;
+            color: #999;
+        }
+
+        .attachment-remove {
+            background: #dc3545;
+            color: white;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .input-row {
             display: flex;
             gap: 10px;
         }
@@ -183,6 +315,25 @@
             border-color: #667eea;
         }
 
+        .attach-button {
+            background: #f5f5f5;
+            color: #666;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s;
+        }
+
+        .attach-button:hover {
+            background: #e0e0e0;
+        }
+
         .send-button {
             background: #667eea;
             color: white;
@@ -199,7 +350,7 @@
             background: #5568d3;
         }
 
-        .send-button:disabled {
+        .send-button:disabled, .attach-button:disabled {
             background: #ccc;
             cursor: not-allowed;
         }
@@ -295,30 +446,6 @@
             display: none;
         }
 
-        .new-conversation-container {
-            padding: 20px;
-            background: white;
-            border-top: 1px solid #e0e0e0;
-            text-align: center;
-            display: none;
-        }
-
-        .new-conversation-button {
-            background: #28a745;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 24px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-
-        .new-conversation-button:hover {
-            background: #218838;
-        }
-
         .disconnected-overlay {
             position: absolute;
             top: 0;
@@ -342,6 +469,26 @@
             font-size: 18px;
             color: #333;
             font-weight: 600;
+        }
+
+        .new-conversation-button {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 24px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .new-conversation-button:hover {
+            background: #218838;
+        }
+
+        #fileInput {
+            display: none;
         }
     </style>
 </head>
@@ -386,8 +533,20 @@
                 Agent is typing...
             </div>
             <div class="chat-input-container" id="chatInputContainer">
-                <input type="text" class="chat-input" id="messageInput" placeholder="Type your message..." disabled />
-                <button class="send-button" id="sendButton" onclick="sendMessage()" disabled>Send</button>
+                <div class="attachment-preview-bar" id="attachmentPreview">
+                    <div id="attachmentPreviewContent"></div>
+                    <div class="attachment-preview-info">
+                        <div class="attachment-preview-name" id="attachmentPreviewName"></div>
+                        <div class="attachment-preview-size" id="attachmentPreviewSize"></div>
+                    </div>
+                    <button class="attachment-remove" onclick="removeAttachment()">×</button>
+                </div>
+                <div class="input-row">
+                    <input type="file" id="fileInput" onchange="handleFileSelect(event)" />
+                    <button class="attach-button" id="attachButton" onclick="triggerFileSelect()" disabled title="Attach file">📎</button>
+                    <input type="text" class="chat-input" id="messageInput" placeholder="Type your message..." disabled />
+                    <button class="send-button" id="sendButton" onclick="sendMessage()" disabled>Send</button>
+                </div>
             </div>
         </div>
     </div>
@@ -398,9 +557,11 @@
         let conversationStarted = false;
         let messagingServiceReady = false;
         let displayedMessageIds = new Set();
-        let userSentMessages = new Set(); // Track messages we sent
+        let userSentMessages = new Set();
+        let selectedFile = null;
         const ENVIRONMENT = 'prod-apse2';
         const BOOTSTRAP_URL = 'https://apps.mypurecloud.com.au/genesys-bootstrap/genesys.min.js';
+        const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB limit for inbound attachments
 
         function showError(message) {
             const errorDiv = document.getElementById('errorMessage');
@@ -424,7 +585,6 @@
                 return;
             }
 
-            // Validate deployment ID format (should be a UUID)
             const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
             if (!uuidRegex.test(deploymentId)) {
                 showError('Deployment ID should be in UUID format (e.g., a1709d60-47e9-40d7-bfd6-a3e421776e05)');
@@ -433,13 +593,11 @@
 
             console.log('Initialising with:', { deploymentId, environment: ENVIRONMENT });
 
-            // Show chat container
             document.getElementById('configPanel').style.display = 'none';
             document.getElementById('chatContainer').style.display = 'flex';
             updateStatus('Loading Genesys SDK...');
 
             try {
-                // Load the Genesys Cloud Web Messenger SDK
                 (function (g, e, n, es, ys) {
                     g['_genesysJs'] = e;
                     g[e] = g[e] || function () {
@@ -462,7 +620,6 @@
                     deploymentId: deploymentId
                 });
 
-                // Subscribe to Messenger events
                 setupEventListeners();
 
             } catch (error) {
@@ -473,48 +630,39 @@
         }
 
         function setupEventListeners() {
-            // Messenger is ready
             Genesys('subscribe', 'Messenger.ready', function(data) {
                 console.log('Messenger.ready', data);
                 updateStatus('Messenger ready - Waiting for MessagingService...');
                 isInitialized = true;
 
-                // Now subscribe to MessagingService.ready - embedded inside Messenger.ready
                 Genesys('subscribe', 'MessagingService.ready', function(data) {
                     console.log('MessagingService.ready', data);
                     updateStatus('MessagingService ready - Starting conversation...');
                     messagingServiceReady = true;
-                    
-                    // Both Messenger and MessagingService are ready - start conversation
                     startConversation();
                 });
             });
 
-            // Messages received
             Genesys('subscribe', 'MessagingService.messagesReceived', function(data) {
                 console.log('=== MessagingService.messagesReceived ===');
                 console.log('Full data:', JSON.stringify(data, null, 2));
                 
-                // Fix: Access data.data.messages instead of data.messages
                 if (data && data.data && data.data.messages) {
                     data.data.messages.forEach(msg => {
                         console.log('Processing message ID:', msg.id);
                         console.log('Direction:', msg.direction, 'Type:', msg.type, 'OriginatingEntity:', msg.originatingEntity);
 
-                        // Skip if we've already displayed this message
                         if (displayedMessageIds.has(msg.id)) {
                             console.log('Skipping - already displayed');
                             return;
                         }
 
-                        // Skip Event type messages (like Presence)
                         if (msg.type === 'Event') {
                             console.log('Skipping - Event type message');
                             displayedMessageIds.add(msg.id);
                             return;
                         }
 
-                        // Handle INBOUND messages (user's own messages echoed back)
                         if (msg.direction === 'Inbound') {
                             const messageText = msg.text || msg.body;
                             if (userSentMessages.has(messageText)) {
@@ -525,24 +673,15 @@
                             }
                         }
 
-                        // Handle ALL OUTBOUND messages (from bot or agent)
                         if (msg.direction === 'Outbound') {
                             const messageText = msg.text || msg.body;
                             
-                            if (!messageText) {
-                                console.log('Skipping - no text content');
-                                displayedMessageIds.add(msg.id);
-                                return;
-                            }
-
                             console.log('Displaying outbound message:', messageText);
                             const senderName = (msg.channel && msg.channel.from && msg.channel.from.nickname) || 
                                              (msg.originatingEntity === 'Bot' ? 'Bot' : 'Agent');
                             
-                            // Get avatar image URL
                             const avatarUrl = (msg.channel && msg.channel.from && (msg.channel.from.avatar || msg.channel.from.image)) || null;
                             
-                            // Check if message has quick replies
                             let quickReplies = [];
                             if (msg.type === 'Structured' && msg.content) {
                                 quickReplies = msg.content
@@ -550,7 +689,15 @@
                                     .map(c => c.quickReply);
                             }
 
-                            addMessage(messageText, 'agent', senderName, quickReplies, avatarUrl);
+                            // Check for attachments
+                            let attachments = [];
+                            if (msg.content) {
+                                attachments = msg.content
+                                    .filter(c => c.contentType === 'Attachment')
+                                    .map(c => c.attachment);
+                            }
+
+                            addMessage(messageText, 'agent', senderName, quickReplies, avatarUrl, attachments);
                             displayedMessageIds.add(msg.id);
                             return;
                         }
@@ -562,7 +709,6 @@
                 }
             });
 
-            // Typing indicator
             Genesys('subscribe', 'MessagingService.typing', function(data) {
                 console.log('MessagingService.typing', data);
                 const typingIndicator = document.getElementById('typingIndicator');
@@ -573,7 +719,6 @@
                 }
             });
 
-            // Conversation started
             Genesys('subscribe', 'MessagingService.conversationStarted', function(data) {
                 console.log('Conversation started', data);
                 updateStatus('Conversation active');
@@ -584,7 +729,6 @@
                 hideDisconnectedOverlay();
             });
 
-            // Conversation events
             Genesys('subscribe', 'MessagingService.conversationDisconnected', function(data) {
                 console.log('Conversation disconnected', data);
                 updateStatus('Conversation disconnected');
@@ -595,7 +739,6 @@
                 showDisconnectedOverlay();
             });
 
-            // Conversation cleared
             Genesys('subscribe', 'MessagingService.conversationCleared', function(data) {
                 console.log('Conversation cleared', data);
                 updateStatus('Conversation cleared');
@@ -605,20 +748,17 @@
                 addSystemMessage('Starting new conversation...');
             });
 
-            // Error handling
             Genesys('subscribe', 'Launcher.error', function(error) {
                 console.error('Launcher error:', error);
                 addSystemMessage('Error: ' + (error.message || 'An error occurred'));
                 updateStatus('Error occurred');
             });
 
-            // Message sent
             Genesys('subscribe', 'MessagingService.messageSent', function(data) {
                 console.log('Message sent', data);
             });
         }
 
-        // Start a conversation
         function startConversation() {
             if (!messagingServiceReady) {
                 console.log('MessagingService not ready yet, waiting...');
@@ -645,7 +785,6 @@
             );
         }
 
-        // Start a new conversation by resetting
         function startNewConversation() {
             if (!messagingServiceReady) {
                 console.log('MessagingService not ready');
@@ -680,69 +819,147 @@
             );
         }
 
-        // Show disconnected overlay
-        function showDisconnectedOverlay() {
-            document.getElementById('disconnectedOverlay').classList.add('active');
+        // File handling functions
+        function triggerFileSelect() {
+            document.getElementById('fileInput').click();
         }
 
-        // Hide disconnected overlay
-        function hideDisconnectedOverlay() {
-            document.getElementById('disconnectedOverlay').classList.remove('active');
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (file.size > MAX_FILE_SIZE) {
+                addSystemMessage(`File size exceeds 10MB limit. Please select a smaller file.`);
+                event.target.value = '';
+                return;
+            }
+
+            selectedFile = file;
+            showAttachmentPreview(file);
         }
 
-        // Clear chat messages
-        function clearChatMessages() {
-            const messagesContainer = document.getElementById('chatMessages');
-            messagesContainer.innerHTML = '';
+        function showAttachmentPreview(file) {
+            const previewBar = document.getElementById('attachmentPreview');
+            const previewContent = document.getElementById('attachmentPreviewContent');
+            const previewName = document.getElementById('attachmentPreviewName');
+            const previewSize = document.getElementById('attachmentPreviewSize');
+
+            previewName.textContent = file.name;
+            previewSize.textContent = formatFileSize(file.size);
+
+            // Show image preview for image files
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewContent.innerHTML = `<img src="${e.target.result}" alt="Preview" />`;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                const ext = file.name.split('.').pop().toUpperCase();
+                previewContent.innerHTML = `<div class="attachment-icon">${ext.substring(0, 3)}</div>`;
+            }
+
+            previewBar.classList.add('active');
         }
 
-        // Send a message
+        function removeAttachment() {
+            selectedFile = null;
+            document.getElementById('fileInput').value = '';
+            document.getElementById('attachmentPreview').classList.remove('active');
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
         function sendMessage() {
             const input = document.getElementById('messageInput');
             const message = input.value.trim();
 
-            if (!message) return;
+            if (!message && !selectedFile) return;
 
             if (!isConnected || !messagingServiceReady) {
                 addSystemMessage('Please wait for connection to be established.');
                 return;
             }
 
-            // Track that we're sending this message
-            userSentMessages.add(message);
+            // If there's a file attachment
+            if (selectedFile) {
+                sendMessageWithAttachment(message, selectedFile);
+                input.value = '';
+                removeAttachment();
+                return;
+            }
 
-            // Add to UI immediately
+            // Regular text message
+            userSentMessages.add(message);
             addMessage(message, 'user', 'You');
             input.value = '';
 
-            // Send via Genesys
             Genesys('command', 'MessagingService.sendMessage', {
                 message: message
             }, function(result) {
                 if (result && result.error) {
                     console.error('Error sending message:', result.error);
                     addSystemMessage('Failed to send message: ' + result.error);
-                    userSentMessages.delete(message); // Remove from tracking if failed
+                    userSentMessages.delete(message);
                 } else {
                     console.log('Message sent successfully:', result);
                 }
             });
         }
 
-        // Send a quick reply
+        function sendMessageWithAttachment(message, file) {
+            console.log('Sending message with attachment:', file.name);
+            
+            // Display message in UI
+            if (message) {
+                addMessage(message, 'user', 'You');
+            }
+            
+            // Display attachment preview in chat
+            addAttachmentMessage(file, 'user');
+
+            // Use FileReader to convert file to base64 or use the file directly
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const fileData = e.target.result;
+                
+                Genesys('command', 'MessagingService.sendMessage', {
+                    message: message || '',
+                    file: {
+                        name: file.name,
+                        type: file.type,
+                        data: fileData
+                    }
+                }, function(result) {
+                    if (result && result.error) {
+                        console.error('Error sending attachment:', result.error);
+                        addSystemMessage('Failed to send attachment: ' + result.error);
+                    } else {
+                        console.log('Attachment sent successfully:', result);
+                    }
+                }, function(error) {
+                    console.error('Error sending attachment:', error);
+                    addSystemMessage('Failed to send attachment');
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+
         function sendQuickReply(payload) {
             if (!isConnected || !messagingServiceReady) {
                 addSystemMessage('Please wait for connection to be established.');
                 return;
             }
 
-            // Track the payload as sent
             userSentMessages.add(payload);
-
-            // Add to UI
             addMessage(payload, 'user', 'You');
 
-            // Send via Genesys
             Genesys('command', 'MessagingService.sendMessage', {
                 message: payload
             }, function(result) {
@@ -756,8 +973,7 @@
             });
         }
 
-        // Add message to chat window
-        function addMessage(text, type, sender, quickReplies = [], avatarUrl = null) {
+        function addMessage(text, type, sender, quickReplies = [], avatarUrl = null, attachments = []) {
             const messagesContainer = document.getElementById('chatMessages');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${type}`;
@@ -765,7 +981,6 @@
             const now = new Date();
             const timeString = now.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' });
 
-            // Build avatar HTML if URL is provided
             let avatarHtml = '';
             if (avatarUrl) {
                 avatarHtml = `<img src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(sender)}" class="message-avatar" />`;
@@ -780,21 +995,99 @@
                 quickRepliesHtml += '</div>';
             }
 
+            let contentHtml = text ? `<div class="message-content">${escapeHtml(text)}</div>` : '';
+
             messageDiv.innerHTML = `
                 <div class="message-header">
                     ${avatarHtml}
                     <span class="message-sender">${escapeHtml(sender)}</span>
                 </div>
-                <div class="message-content">${escapeHtml(text)}</div>
+                ${contentHtml}
                 <span class="message-time">${timeString}</span>
                 ${quickRepliesHtml}
             `;
 
             messagesContainer.appendChild(messageDiv);
+
+            // Add attachments if any
+            if (attachments && attachments.length > 0) {
+                attachments.forEach(att => {
+                    addAttachmentToMessage(messagesContainer, att, type);
+                });
+            }
+
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
 
-        // Add system message
+        function addAttachmentMessage(file, type) {
+            const messagesContainer = document.getElementById('chatMessages');
+            
+            const attachmentDiv = document.createElement('div');
+            attachmentDiv.className = `message ${type}`;
+
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    attachmentDiv.innerHTML = `
+                        <div class="message-attachment">
+                            <div class="attachment-preview">
+                                <img src="${e.target.result}" alt="${file.name}" />
+                            </div>
+                        </div>
+                    `;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                const ext = file.name.split('.').pop().toUpperCase();
+                attachmentDiv.innerHTML = `
+                    <div class="message-attachment">
+                        <div class="attachment-file">
+                            <div class="attachment-icon">${ext.substring(0, 3)}</div>
+                            <div class="attachment-info">
+                                <div class="attachment-name">${escapeHtml(file.name)}</div>
+                                <div class="attachment-size">${formatFileSize(file.size)}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            messagesContainer.appendChild(attachmentDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function addAttachmentToMessage(container, attachment, type) {
+            const attachmentDiv = document.createElement('div');
+            attachmentDiv.className = `message ${type}`;
+
+            const isImage = attachment.mime && attachment.mime.startsWith('image/');
+            
+            if (isImage && attachment.url) {
+                attachmentDiv.innerHTML = `
+                    <div class="message-attachment">
+                        <div class="attachment-preview" onclick="window.open('${escapeHtml(attachment.url)}', '_blank')">
+                            <img src="${escapeHtml(attachment.url)}" alt="${escapeHtml(attachment.filename || 'Attachment')}" />
+                        </div>
+                    </div>
+                `;
+            } else {
+                const ext = attachment.filename ? attachment.filename.split('.').pop().toUpperCase() : 'FILE';
+                attachmentDiv.innerHTML = `
+                    <div class="message-attachment">
+                        <div class="attachment-file" onclick="window.open('${escapeHtml(attachment.url)}', '_blank')">
+                            <div class="attachment-icon">${ext.substring(0, 3)}</div>
+                            <div class="attachment-info">
+                                <div class="attachment-name">${escapeHtml(attachment.filename || 'Download file')}</div>
+                                ${attachment.size ? `<div class="attachment-size">${formatFileSize(attachment.size)}</div>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            container.appendChild(attachmentDiv);
+        }
+
         function addSystemMessage(text) {
             const messagesContainer = document.getElementById('chatMessages');
             const messageDiv = document.createElement('div');
@@ -808,7 +1101,6 @@
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
 
-        // Update status
         function updateStatus(status) {
             const statusElement = document.getElementById('chatStatus');
             if (statusElement) {
@@ -816,26 +1108,37 @@
             }
         }
 
-        // Enable input
         function enableInput() {
             document.getElementById('messageInput').disabled = false;
             document.getElementById('sendButton').disabled = false;
+            document.getElementById('attachButton').disabled = false;
         }
 
-        // Disable input
         function disableInput() {
             document.getElementById('messageInput').disabled = true;
             document.getElementById('sendButton').disabled = true;
+            document.getElementById('attachButton').disabled = true;
         }
 
-        // Escape HTML to prevent XSS
+        function showDisconnectedOverlay() {
+            document.getElementById('disconnectedOverlay').classList.add('active');
+        }
+
+        function hideDisconnectedOverlay() {
+            document.getElementById('disconnectedOverlay').classList.remove('active');
+        }
+
+        function clearChatMessages() {
+            const messagesContainer = document.getElementById('chatMessages');
+            messagesContainer.innerHTML = '';
+        }
+
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
         }
 
-        // Allow sending message with Enter key
         document.addEventListener('DOMContentLoaded', function() {
             const input = document.getElementById('messageInput');
             if (input) {
