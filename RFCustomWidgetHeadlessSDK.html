@@ -415,14 +415,10 @@
             Genesys('subscribe', 'MessagingService.messagesReceived', function(data) {
                 console.log('=== MessagingService.messagesReceived ===');
                 console.log('Full data:', JSON.stringify(data, null, 2));
-
-                console.log('Debug: Before IF');
-                console.log('Debug data:', data);
-                console.log('Debug data.messages:', data.messages);
-                if (data && data.messages) {
-                    console.log('Debug: Inside IF');
-                    data.messages.forEach(msg => {
-                        console.log('Debug: Inside for');
+                
+                // Fix: Access data.data.messages instead of data.messages
+                if (data && data.data && data.data.messages) {
+                    data.data.messages.forEach(msg => {
                         console.log('Processing message ID:', msg.id);
                         console.log('Direction:', msg.direction, 'Type:', msg.type, 'OriginatingEntity:', msg.originatingEntity);
 
@@ -450,17 +446,19 @@
                             }
                         }
 
-                        // Handle OUTBOUND messages (from bot or agent)
-                        if (msg.direction === 'Outbound' && (msg.originatingEntity === 'Bot' || msg.originatingEntity === 'Human')) {
+                        // Handle ALL OUTBOUND messages (from bot or agent)
+                        if (msg.direction === 'Outbound') {
                             const messageText = msg.text || msg.body;
                             
                             if (!messageText) {
                                 console.log('Skipping - no text content');
+                                displayedMessageIds.add(msg.id);
                                 return;
                             }
 
-                            console.log('Displaying bot/agent message:', messageText);
-                            const senderName = (msg.channel && msg.channel.from && msg.channel.from.nickname) || 'Bot';
+                            console.log('Displaying outbound message:', messageText);
+                            const senderName = (msg.channel && msg.channel.from && msg.channel.from.nickname) || 
+                                             (msg.originatingEntity === 'Bot' ? 'Bot' : 'Agent');
                             
                             // Check if message has quick replies
                             let quickReplies = [];
@@ -477,8 +475,9 @@
 
                         console.log('Message not handled - no matching condition');
                     });
+                } else {
+                    console.log('No messages found in data structure');
                 }
-                console.log('Debug: After IF');
             });
 
             // Typing indicator
