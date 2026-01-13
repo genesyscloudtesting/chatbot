@@ -298,6 +298,7 @@
         let isConnected = false;
         let conversationStarted = false;
         let displayedMessageIds = new Set();
+        let userSentMessages = new Set(); // Track messages we sent
         const ENVIRONMENT = 'prod-apse2';
         const BOOTSTRAP_URL = 'https://apps.mypurecloud.com.au/genesys-bootstrap/genesys.min.js';
 
@@ -383,48 +384,50 @@
                 enableInput();
             });
 
-            // Messages received
+            // Messages received - SIMPLIFIED LOGIC
             Genesys('subscribe', 'MessagingService.messagesReceived', function(data) {
-                console.log('MessagingService.messagesReceived', data);
+                console.log('=== MessagingService.messagesReceived ===');
+                console.log('Full data:', JSON.stringify(data, null, 2));
+                
                 if (data && data.messages) {
                     data.messages.forEach(msg => {
+                        console.log('Processing message ID:', msg.id);
+                        console.log('Message direction:', msg.direction);
+                        console.log('Message type:', msg.type);
+                        console.log('Message text:', msg.text);
+                        console.log('Message from:', msg.from);
+                        console.log('Full message object:', JSON.stringify(msg, null, 2));
+
                         // Skip if we've already displayed this message
                         if (displayedMessageIds.has(msg.id)) {
+                            console.log('Skipping - already displayed');
                             return;
                         }
 
-                        console.log('Processing message:', msg);
-
-                        // Handle both Text and Structured messages
-                        if (msg.type === 'Text' || msg.type === 'Structured') {
-                            const messageText = msg.text || msg.body;
-                            
-                            if (!messageText) {
-                                console.log('No text content in message');
-                                return;
-                            }
-
-                            // Check if message is from bot/agent (not from user)
-                            // Inbound = from agent/bot, Outbound = can also be from bot in some configs
-                            if (msg.direction === 'Inbound') {
-                                // Definitely from agent/bot
-                                addMessage(messageText, 'agent', msg.from?.nickname || 'Agent');
-                                displayedMessageIds.add(msg.id);
-                            } else if (msg.direction === 'Outbound') {
-                                // Check if it's from the bot (has 'from' field) vs user (no 'from' or originatingEntity)
-                                // Bot messages typically have msg.from or are marked with channel.from
-                                if (msg.from && msg.from.nickname) {
-                                    // This is from bot/agent
-                                    addMessage(messageText, 'agent', msg.from.nickname);
-                                    displayedMessageIds.add(msg.id);
-                                } else if (msg.channel && msg.channel.from && msg.channel.from.nickname) {
-                                    // Also from bot/agent
-                                    addMessage(messageText, 'agent', msg.channel.from.nickname);
-                                    displayedMessageIds.add(msg.id);
-                                }
-                                // If no 'from' information, it's likely the user's own message, skip it
-                            }
+                        // Get the message text
+                        const messageText = msg.text || msg.body;
+                        
+                        if (!messageText) {
+                            console.log('Skipping - no text content');
+                            return;
                         }
+
+                        // Skip messages we sent ourselves
+                        if (userSentMessages.has(messageText)) {
+                            console.log('Skipping - this is our own message');
+                            userSentMessages.delete(messageText); // Remove from tracking
+                            displayedMessageIds.add(msg.id);
+                            return;
+                        }
+
+                        // Display ALL other messages as agent messages (bot or human agent)
+                        console.log('Displaying as agent message');
+                        const senderName = (msg.from && msg.from.nickname) || 
+                                         (msg.channel && msg.channel.from && msg.channel.from.nickname) || 
+                                         'Bot';
+                        
+                        addMessage(messageText, 'agent', senderName);
+                        displayedMessageIds.add(msg.id);
                     });
                 }
             });
@@ -461,6 +464,7 @@
                 updateStatus('Conversation cleared');
                 addSystemMessage('Conversation has been cleared.');
                 displayedMessageIds.clear();
+                userSentMessages.clear();
             });
 
             // Error handling
@@ -488,6 +492,9 @@
                 return;
             }
 
+            // Track that we're sending this message
+            userSentMessages.add(message);
+
             // Add to UI immediately
             addMessage(message, 'user', 'You');
             input.value = '';
@@ -499,6 +506,7 @@
                 if (result && result.error) {
                     console.error('Error sending message:', result.error);
                     addSystemMessage('Failed to send message: ' + result.error);
+                    userSentMessages.delete(message); // Remove from tracking if failed
                 } else {
                     console.log('Message sent successfully:', result);
                 }
