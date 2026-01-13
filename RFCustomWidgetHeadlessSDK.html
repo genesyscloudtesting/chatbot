@@ -75,6 +75,31 @@
             align-items: center;
         }
 
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 4px;
+            padding: 0 8px;
+        }
+
+        .message.user .message-header {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid #e0e0e0;
+        }
+
+        .message-sender {
+            font-size: 11px;
+            color: #999;
+        }
+
         .message-content {
             max-width: 70%;
             padding: 12px 16px;
@@ -100,13 +125,6 @@
             color: #856404;
             max-width: 90%;
             font-size: 12px;
-        }
-
-        .message-sender {
-            font-size: 11px;
-            color: #999;
-            margin-bottom: 4px;
-            padding: 0 8px;
         }
 
         .message-time {
@@ -521,6 +539,9 @@
                             const senderName = (msg.channel && msg.channel.from && msg.channel.from.nickname) || 
                                              (msg.originatingEntity === 'Bot' ? 'Bot' : 'Agent');
                             
+                            // Get avatar image URL
+                            const avatarUrl = (msg.channel && msg.channel.from && (msg.channel.from.avatar || msg.channel.from.image)) || null;
+                            
                             // Check if message has quick replies
                             let quickReplies = [];
                             if (msg.type === 'Structured' && msg.content) {
@@ -529,7 +550,7 @@
                                     .map(c => c.quickReply);
                             }
 
-                            addMessage(messageText, 'agent', senderName, quickReplies);
+                            addMessage(messageText, 'agent', senderName, quickReplies, avatarUrl);
                             displayedMessageIds.add(msg.id);
                             return;
                         }
@@ -736,13 +757,19 @@
         }
 
         // Add message to chat window
-        function addMessage(text, type, sender, quickReplies = []) {
+        function addMessage(text, type, sender, quickReplies = [], avatarUrl = null) {
             const messagesContainer = document.getElementById('chatMessages');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${type}`;
 
             const now = new Date();
             const timeString = now.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' });
+
+            // Build avatar HTML if URL is provided
+            let avatarHtml = '';
+            if (avatarUrl) {
+                avatarHtml = `<img src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(sender)}" class="message-avatar" />`;
+            }
 
             let quickRepliesHtml = '';
             if (quickReplies && quickReplies.length > 0) {
@@ -754,7 +781,10 @@
             }
 
             messageDiv.innerHTML = `
-                <span class="message-sender">${escapeHtml(sender)}</span>
+                <div class="message-header">
+                    ${avatarHtml}
+                    <span class="message-sender">${escapeHtml(sender)}</span>
+                </div>
                 <div class="message-content">${escapeHtml(text)}</div>
                 <span class="message-time">${timeString}</span>
                 ${quickRepliesHtml}
