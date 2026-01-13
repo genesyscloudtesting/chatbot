@@ -1,1 +1,851 @@
-test
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genesys Cloud Messenger - Custom UI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 500px;
+            height: 600px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: #667eea;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .chat-status {
+            background: #f7f7f7;
+            padding: 10px 20px;
+            font-size: 12px;
+            color: #666;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f9f9f9;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message.user {
+            align-items: flex-end;
+        }
+
+        .message.agent {
+            align-items: flex-start;
+        }
+
+        .message.system {
+            align-items: center;
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 4px;
+            padding: 0 8px;
+        }
+
+        .message.user .message-header {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid #e0e0e0;
+        }
+
+        .message-sender {
+            font-size: 11px;
+            color: #999;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            word-wrap: break-word;
+        }
+
+        .message.user .message-content {
+            background: #667eea;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.agent .message-content {
+            background: white;
+            color: #333;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .message.system .message-content {
+            background: #fff3cd;
+            color: #856404;
+            max-width: 90%;
+            font-size: 12px;
+        }
+
+        .message-time {
+            font-size: 10px;
+            color: #999;
+            margin-top: 4px;
+            padding: 0 8px;
+        }
+
+        .quick-replies {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+            max-width: 70%;
+        }
+
+        .message.agent .quick-replies {
+            align-self: flex-start;
+        }
+
+        .quick-reply-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .quick-reply-button:hover {
+            background: #5568d3;
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 24px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .chat-input:focus {
+            border-color: #667eea;
+        }
+
+        .send-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 24px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .send-button:hover {
+            background: #5568d3;
+        }
+
+        .send-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .config-panel {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .config-input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .init-button {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .init-button:hover {
+            background: #218838;
+        }
+
+        .typing-indicator {
+            display: none;
+            padding: 10px 20px;
+            font-size: 12px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .typing-indicator.active {
+            display: block;
+        }
+
+        .helper-text {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 12px;
+            margin-bottom: 20px;
+            font-size: 12px;
+            color: #0c5460;
+            border-radius: 4px;
+        }
+
+        .info-box strong {
+            display: block;
+            margin-bottom: 8px;
+            color: #004085;
+        }
+
+        .info-box ol {
+            margin-left: 20px;
+            margin-top: 8px;
+        }
+
+        .info-box li {
+            margin-bottom: 4px;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 12px;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #721c24;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .new-conversation-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            text-align: center;
+            display: none;
+        }
+
+        .new-conversation-button {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 24px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .new-conversation-button:hover {
+            background: #218838;
+        }
+
+        .disconnected-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 20px;
+            z-index: 10;
+        }
+
+        .disconnected-overlay.active {
+            display: flex;
+        }
+
+        .disconnected-message {
+            font-size: 18px;
+            color: #333;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div style="width: 100%; max-width: 500px;">
+        <div class="config-panel" id="configPanel">
+            <h3 style="margin-bottom: 15px; color: #333;">Genesys Cloud Web Messenger Configuration</h3>
+            
+            <div class="info-box">
+                <strong>How to get your configuration:</strong>
+                <ol>
+                    <li>Log in to Genesys Cloud Admin</li>
+                    <li>Navigate to: Admin → Message → Messenger Configurations</li>
+                    <li>Select or create a Messenger Configuration</li>
+                    <li>Copy the Deployment Key (Deployment ID)</li>
+                </ol>
+            </div>
+
+            <div class="helper-text">Deployment ID:</div>
+            <input type="text" id="deploymentId" class="config-input" placeholder="e.g., a1709d60-47e9-40d7-bfd6-a3e421776e05" />
+            
+            <button class="init-button" onclick="initializeMessenger()">Initialize Messenger</button>
+            
+            <div class="error-message" id="errorMessage"></div>
+        </div>
+
+        <div class="chat-container" id="chatContainer" style="display: none; position: relative;">
+            <div class="disconnected-overlay" id="disconnectedOverlay">
+                <div class="disconnected-message">Conversation Disconnected</div>
+                <button class="new-conversation-button" onclick="startNewConversation()">Start New Conversation</button>
+            </div>
+            
+            <div class="chat-header">
+                Genesys Cloud Support
+            </div>
+            <div class="chat-status" id="chatStatus">
+                Status: Initialising...
+            </div>
+            <div class="chat-messages" id="chatMessages">
+            </div>
+            <div class="typing-indicator" id="typingIndicator">
+                Agent is typing...
+            </div>
+            <div class="chat-input-container" id="chatInputContainer">
+                <input type="text" class="chat-input" id="messageInput" placeholder="Type your message..." disabled />
+                <button class="send-button" id="sendButton" onclick="sendMessage()" disabled>Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isInitialized = false;
+        let isConnected = false;
+        let conversationStarted = false;
+        let messagingServiceReady = false;
+        let displayedMessageIds = new Set();
+        let userSentMessages = new Set(); // Track messages we sent
+        const ENVIRONMENT = 'prod-apse2';
+        const BOOTSTRAP_URL = 'https://apps.mypurecloud.com.au/genesys-bootstrap/genesys.min.js';
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function hideError() {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.style.display = 'none';
+        }
+
+        // Initialize the Genesys Cloud Messenger
+        function initializeMessenger() {
+            const deploymentId = document.getElementById('deploymentId').value.trim();
+
+            hideError();
+
+            if (!deploymentId) {
+                showError('Please enter a Deployment ID');
+                return;
+            }
+
+            // Validate deployment ID format (should be a UUID)
+            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            if (!uuidRegex.test(deploymentId)) {
+                showError('Deployment ID should be in UUID format (e.g., a1709d60-47e9-40d7-bfd6-a3e421776e05)');
+                return;
+            }
+
+            console.log('Initialising with:', { deploymentId, environment: ENVIRONMENT });
+
+            // Show chat container
+            document.getElementById('configPanel').style.display = 'none';
+            document.getElementById('chatContainer').style.display = 'flex';
+            updateStatus('Loading Genesys SDK...');
+
+            try {
+                // Load the Genesys Cloud Web Messenger SDK
+                (function (g, e, n, es, ys) {
+                    g['_genesysJs'] = e;
+                    g[e] = g[e] || function () {
+                        (g[e].q = g[e].q || []).push(arguments)
+                    };
+                    g[e].t = 1 * new Date();
+                    g[e].c = es;
+                    ys = document.createElement('script'); 
+                    ys.async = 1; 
+                    ys.src = n; 
+                    ys.charset = 'utf-8';
+                    ys.onerror = function() {
+                        console.error('Failed to load Genesys SDK from:', n);
+                        addSystemMessage('Failed to load Genesys SDK. Please check your configuration.');
+                        updateStatus('Error: Failed to load SDK');
+                    };
+                    document.head.appendChild(ys);
+                })(window, 'Genesys', BOOTSTRAP_URL, {
+                    environment: ENVIRONMENT,
+                    deploymentId: deploymentId
+                });
+
+                // Subscribe to Messenger events
+                setupEventListeners();
+
+            } catch (error) {
+                console.error('Initialization error:', error);
+                addSystemMessage('Error initialising messenger: ' + error.message);
+                updateStatus('Error: ' + error.message);
+            }
+        }
+
+        function setupEventListeners() {
+            // Messenger is ready
+            Genesys('subscribe', 'Messenger.ready', function(data) {
+                console.log('Messenger.ready', data);
+                updateStatus('Messenger ready - Waiting for MessagingService...');
+                isInitialized = true;
+
+                // Now subscribe to MessagingService.ready - embedded inside Messenger.ready
+                Genesys('subscribe', 'MessagingService.ready', function(data) {
+                    console.log('MessagingService.ready', data);
+                    updateStatus('MessagingService ready - Starting conversation...');
+                    messagingServiceReady = true;
+                    
+                    // Both Messenger and MessagingService are ready - start conversation
+                    startConversation();
+                });
+            });
+
+            // Messages received
+            Genesys('subscribe', 'MessagingService.messagesReceived', function(data) {
+                console.log('=== MessagingService.messagesReceived ===');
+                console.log('Full data:', JSON.stringify(data, null, 2));
+                
+                // Fix: Access data.data.messages instead of data.messages
+                if (data && data.data && data.data.messages) {
+                    data.data.messages.forEach(msg => {
+                        console.log('Processing message ID:', msg.id);
+                        console.log('Direction:', msg.direction, 'Type:', msg.type, 'OriginatingEntity:', msg.originatingEntity);
+
+                        // Skip if we've already displayed this message
+                        if (displayedMessageIds.has(msg.id)) {
+                            console.log('Skipping - already displayed');
+                            return;
+                        }
+
+                        // Skip Event type messages (like Presence)
+                        if (msg.type === 'Event') {
+                            console.log('Skipping - Event type message');
+                            displayedMessageIds.add(msg.id);
+                            return;
+                        }
+
+                        // Handle INBOUND messages (user's own messages echoed back)
+                        if (msg.direction === 'Inbound') {
+                            const messageText = msg.text || msg.body;
+                            if (userSentMessages.has(messageText)) {
+                                console.log('Skipping Inbound - this is our own message echoed back');
+                                userSentMessages.delete(messageText);
+                                displayedMessageIds.add(msg.id);
+                                return;
+                            }
+                        }
+
+                        // Handle ALL OUTBOUND messages (from bot or agent)
+                        if (msg.direction === 'Outbound') {
+                            const messageText = msg.text || msg.body;
+                            
+                            if (!messageText) {
+                                console.log('Skipping - no text content');
+                                displayedMessageIds.add(msg.id);
+                                return;
+                            }
+
+                            console.log('Displaying outbound message:', messageText);
+                            const senderName = (msg.channel && msg.channel.from && msg.channel.from.nickname) || 
+                                             (msg.originatingEntity === 'Bot' ? 'Bot' : 'Agent');
+                            
+                            // Get avatar image URL
+                            const avatarUrl = (msg.channel && msg.channel.from && (msg.channel.from.avatar || msg.channel.from.image)) || null;
+                            
+                            // Check if message has quick replies
+                            let quickReplies = [];
+                            if (msg.type === 'Structured' && msg.content) {
+                                quickReplies = msg.content
+                                    .filter(c => c.contentType === 'QuickReply')
+                                    .map(c => c.quickReply);
+                            }
+
+                            addMessage(messageText, 'agent', senderName, quickReplies, avatarUrl);
+                            displayedMessageIds.add(msg.id);
+                            return;
+                        }
+
+                        console.log('Message not handled - no matching condition');
+                    });
+                } else {
+                    console.log('No messages found in data structure');
+                }
+            });
+
+            // Typing indicator
+            Genesys('subscribe', 'MessagingService.typing', function(data) {
+                console.log('MessagingService.typing', data);
+                const typingIndicator = document.getElementById('typingIndicator');
+                if (data && data.typing) {
+                    typingIndicator.classList.add('active');
+                } else {
+                    typingIndicator.classList.remove('active');
+                }
+            });
+
+            // Conversation started
+            Genesys('subscribe', 'MessagingService.conversationStarted', function(data) {
+                console.log('Conversation started', data);
+                updateStatus('Conversation active');
+                conversationStarted = true;
+                isConnected = true;
+                addSystemMessage('Conversation has started.');
+                enableInput();
+                hideDisconnectedOverlay();
+            });
+
+            // Conversation events
+            Genesys('subscribe', 'MessagingService.conversationDisconnected', function(data) {
+                console.log('Conversation disconnected', data);
+                updateStatus('Conversation disconnected');
+                isConnected = false;
+                conversationStarted = false;
+                addSystemMessage('Conversation has been disconnected.');
+                disableInput();
+                showDisconnectedOverlay();
+            });
+
+            // Conversation cleared
+            Genesys('subscribe', 'MessagingService.conversationCleared', function(data) {
+                console.log('Conversation cleared', data);
+                updateStatus('Conversation cleared');
+                displayedMessageIds.clear();
+                userSentMessages.clear();
+                clearChatMessages();
+                addSystemMessage('Starting new conversation...');
+            });
+
+            // Error handling
+            Genesys('subscribe', 'Launcher.error', function(error) {
+                console.error('Launcher error:', error);
+                addSystemMessage('Error: ' + (error.message || 'An error occurred'));
+                updateStatus('Error occurred');
+            });
+
+            // Message sent
+            Genesys('subscribe', 'MessagingService.messageSent', function(data) {
+                console.log('Message sent', data);
+            });
+        }
+
+        // Start a conversation
+        function startConversation() {
+            if (!messagingServiceReady) {
+                console.log('MessagingService not ready yet, waiting...');
+                return;
+            }
+
+            console.log('Starting conversation...');
+            updateStatus('Starting conversation...');
+            
+            Genesys('command', 'MessagingService.startConversation',
+                {},
+                function(result) {
+                    console.log('Conversation started successfully', result);
+                    updateStatus('Conversation started');
+                    isConnected = true;
+                    conversationStarted = true;
+                    enableInput();
+                },
+                function(error) {
+                    console.error('Failed to start conversation', error);
+                    addSystemMessage('Failed to start conversation: ' + (error.message || 'Unknown error'));
+                    updateStatus('Failed to start conversation');
+                }
+            );
+        }
+
+        // Start a new conversation by resetting
+        function startNewConversation() {
+            if (!messagingServiceReady) {
+                console.log('MessagingService not ready');
+                addSystemMessage('Messaging service not ready. Please wait.');
+                return;
+            }
+
+            console.log('Resetting conversation...');
+            updateStatus('Resetting conversation...');
+            disableInput();
+            
+            Genesys('command', 'MessagingService.resetConversation',
+                {},
+                function(result) {
+                    console.log('Conversation reset successfully', result);
+                    clearChatMessages();
+                    displayedMessageIds.clear();
+                    userSentMessages.clear();
+                    hideDisconnectedOverlay();
+                    updateStatus('New conversation started');
+                    isConnected = true;
+                    conversationStarted = true;
+                    enableInput();
+                    addSystemMessage('New conversation started.');
+                },
+                function(error) {
+                    console.error('Failed to reset conversation', error);
+                    addSystemMessage('Failed to reset conversation: ' + (error.message || 'Unknown error'));
+                    updateStatus('Failed to reset conversation');
+                    showDisconnectedOverlay();
+                }
+            );
+        }
+
+        // Show disconnected overlay
+        function showDisconnectedOverlay() {
+            document.getElementById('disconnectedOverlay').classList.add('active');
+        }
+
+        // Hide disconnected overlay
+        function hideDisconnectedOverlay() {
+            document.getElementById('disconnectedOverlay').classList.remove('active');
+        }
+
+        // Clear chat messages
+        function clearChatMessages() {
+            const messagesContainer = document.getElementById('chatMessages');
+            messagesContainer.innerHTML = '';
+        }
+
+        // Send a message
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            if (!isConnected || !messagingServiceReady) {
+                addSystemMessage('Please wait for connection to be established.');
+                return;
+            }
+
+            // Track that we're sending this message
+            userSentMessages.add(message);
+
+            // Add to UI immediately
+            addMessage(message, 'user', 'You');
+            input.value = '';
+
+            // Send via Genesys
+            Genesys('command', 'MessagingService.sendMessage', {
+                message: message
+            }, function(result) {
+                if (result && result.error) {
+                    console.error('Error sending message:', result.error);
+                    addSystemMessage('Failed to send message: ' + result.error);
+                    userSentMessages.delete(message); // Remove from tracking if failed
+                } else {
+                    console.log('Message sent successfully:', result);
+                }
+            });
+        }
+
+        // Send a quick reply
+        function sendQuickReply(payload) {
+            if (!isConnected || !messagingServiceReady) {
+                addSystemMessage('Please wait for connection to be established.');
+                return;
+            }
+
+            // Track the payload as sent
+            userSentMessages.add(payload);
+
+            // Add to UI
+            addMessage(payload, 'user', 'You');
+
+            // Send via Genesys
+            Genesys('command', 'MessagingService.sendMessage', {
+                message: payload
+            }, function(result) {
+                if (result && result.error) {
+                    console.error('Error sending quick reply:', result.error);
+                    addSystemMessage('Failed to send message: ' + result.error);
+                    userSentMessages.delete(payload);
+                } else {
+                    console.log('Quick reply sent successfully:', result);
+                }
+            });
+        }
+
+        // Add message to chat window
+        function addMessage(text, type, sender, quickReplies = [], avatarUrl = null) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' });
+
+            // Build avatar HTML if URL is provided
+            let avatarHtml = '';
+            if (avatarUrl) {
+                avatarHtml = `<img src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(sender)}" class="message-avatar" />`;
+            }
+
+            let quickRepliesHtml = '';
+            if (quickReplies && quickReplies.length > 0) {
+                quickRepliesHtml = '<div class="quick-replies">';
+                quickReplies.forEach(qr => {
+                    quickRepliesHtml += `<button class="quick-reply-button" onclick="sendQuickReply('${escapeHtml(qr.payload)}')">${escapeHtml(qr.text)}</button>`;
+                });
+                quickRepliesHtml += '</div>';
+            }
+
+            messageDiv.innerHTML = `
+                <div class="message-header">
+                    ${avatarHtml}
+                    <span class="message-sender">${escapeHtml(sender)}</span>
+                </div>
+                <div class="message-content">${escapeHtml(text)}</div>
+                <span class="message-time">${timeString}</span>
+                ${quickRepliesHtml}
+            `;
+
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Add system message
+        function addSystemMessage(text) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message system';
+
+            messageDiv.innerHTML = `
+                <div class="message-content">${escapeHtml(text)}</div>
+            `;
+
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Update status
+        function updateStatus(status) {
+            const statusElement = document.getElementById('chatStatus');
+            if (statusElement) {
+                statusElement.textContent = `Status: ${status}`;
+            }
+        }
+
+        // Enable input
+        function enableInput() {
+            document.getElementById('messageInput').disabled = false;
+            document.getElementById('sendButton').disabled = false;
+        }
+
+        // Disable input
+        function disableInput() {
+            document.getElementById('messageInput').disabled = true;
+            document.getElementById('sendButton').disabled = true;
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Allow sending message with Enter key
+        document.addEventListener('DOMContentLoaded', function() {
+            const input = document.getElementById('messageInput');
+            if (input) {
+                input.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter' && !input.disabled) {
+                        sendMessage();
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
