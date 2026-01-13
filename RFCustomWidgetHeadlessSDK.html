@@ -417,6 +417,8 @@
                 console.log('Full data:', JSON.stringify(data, null, 2));
 
                 console.log('Debug: Before IF');
+                console.log('Debug data:', data);
+                console.log('Debug data.messages:', data.messages);
                 if (data && data.messages) {
                     console.log('Debug: Inside IF');
                     data.messages.forEach(msg => {
