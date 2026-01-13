@@ -276,6 +276,55 @@
             border-radius: 4px;
             display: none;
         }
+
+        .new-conversation-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            text-align: center;
+            display: none;
+        }
+
+        .new-conversation-button {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 24px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .new-conversation-button:hover {
+            background: #218838;
+        }
+
+        .disconnected-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 20px;
+            z-index: 10;
+        }
+
+        .disconnected-overlay.active {
+            display: flex;
+        }
+
+        .disconnected-message {
+            font-size: 18px;
+            color: #333;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -301,7 +350,12 @@
             <div class="error-message" id="errorMessage"></div>
         </div>
 
-        <div class="chat-container" id="chatContainer" style="display: none;">
+        <div class="chat-container" id="chatContainer" style="display: none; position: relative;">
+            <div class="disconnected-overlay" id="disconnectedOverlay">
+                <div class="disconnected-message">Conversation Disconnected</div>
+                <button class="new-conversation-button" onclick="startNewConversation()">Start New Conversation</button>
+            </div>
+            
             <div class="chat-header">
                 Genesys Cloud Support
             </div>
@@ -313,7 +367,7 @@
             <div class="typing-indicator" id="typingIndicator">
                 Agent is typing...
             </div>
-            <div class="chat-input-container">
+            <div class="chat-input-container" id="chatInputContainer">
                 <input type="text" class="chat-input" id="messageInput" placeholder="Type your message..." disabled />
                 <button class="send-button" id="sendButton" onclick="sendMessage()" disabled>Send</button>
             </div>
@@ -403,12 +457,11 @@
             // Messenger is ready
             Genesys('subscribe', 'Messenger.ready', function(data) {
                 console.log('Messenger.ready', data);
-                updateStatus('Messenger ready - Headless mode active');
+                updateStatus('Messenger ready - Starting conversation...');
                 isInitialized = true;
-                isConnected = true;
-                addSystemMessage('Connected to Genesys Cloud in headless mode.');
-                addSystemMessage('You can now start chatting!');
-                enableInput();
+                
+                // Automatically start the conversation
+                startConversation();
             });
 
             // Messages received
@@ -494,25 +547,32 @@
             // Conversation started
             Genesys('subscribe', 'MessagingService.conversationStarted', function(data) {
                 console.log('Conversation started', data);
-                updateStatus('Conversation started');
+                updateStatus('Conversation active');
                 conversationStarted = true;
+                isConnected = true;
                 addSystemMessage('Conversation has started.');
+                enableInput();
+                hideDisconnectedOverlay();
             });
 
             // Conversation events
             Genesys('subscribe', 'MessagingService.conversationDisconnected', function(data) {
                 console.log('Conversation disconnected', data);
                 updateStatus('Conversation disconnected');
+                isConnected = false;
+                conversationStarted = false;
                 addSystemMessage('Conversation has been disconnected.');
+                disableInput();
+                showDisconnectedOverlay();
             });
 
             // Conversation cleared
             Genesys('subscribe', 'MessagingService.conversationCleared', function(data) {
                 console.log('Conversation cleared', data);
                 updateStatus('Conversation cleared');
-                addSystemMessage('Conversation has been cleared.');
                 displayedMessageIds.clear();
                 userSentMessages.clear();
+                clearChatMessages();
             });
 
             // Error handling
@@ -526,6 +586,72 @@
             Genesys('subscribe', 'MessagingService.messageSent', function(data) {
                 console.log('Message sent', data);
             });
+        }
+
+        // Start a conversation
+        function startConversation() {
+            console.log('Starting conversation...');
+            updateStatus('Starting conversation...');
+            
+            Genesys('command', 'MessagingService.startConversation',
+                {},
+                function(result) {
+                    console.log('Conversation started successfully', result);
+                    updateStatus('Conversation started');
+                    isConnected = true;
+                    conversationStarted = true;
+                    enableInput();
+                },
+                function(error) {
+                    console.error('Failed to start conversation', error);
+                    addSystemMessage('Failed to start conversation: ' + (error.message || 'Unknown error'));
+                    updateStatus('Failed to start conversation');
+                }
+            );
+        }
+
+        // Start a new conversation
+        function startNewConversation() {
+            console.log('Starting new conversation...');
+            clearChatMessages();
+            displayedMessageIds.clear();
+            userSentMessages.clear();
+            hideDisconnectedOverlay();
+            updateStatus('Starting new conversation...');
+            
+            Genesys('command', 'MessagingService.startConversation',
+                {},
+                function(result) {
+                    console.log('New conversation started successfully', result);
+                    updateStatus('New conversation started');
+                    isConnected = true;
+                    conversationStarted = true;
+                    enableInput();
+                    addSystemMessage('New conversation started.');
+                },
+                function(error) {
+                    console.error('Failed to start new conversation', error);
+                    addSystemMessage('Failed to start new conversation: ' + (error.message || 'Unknown error'));
+                    updateStatus('Failed to start new conversation');
+                    showDisconnectedOverlay();
+                }
+            );
+        }
+
+        // Show disconnected overlay
+        function showDisconnectedOverlay() {
+            document.getElementById('disconnectedOverlay').classList.add('active');
+        }
+
+        // Hide disconnected overlay
+        function hideDisconnectedOverlay() {
+            document.getElementById('disconnectedOverlay').classList.remove('active');
+        }
+
+        // Clear chat messages
+        function clearChatMessages() {
+            const messagesContainer = document.getElementById('chatMessages');
+            messagesContainer.innerHTML = '';
         }
 
         // Send a message
