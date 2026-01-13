@@ -573,6 +573,7 @@
                 displayedMessageIds.clear();
                 userSentMessages.clear();
                 clearChatMessages();
+                addSystemMessage('Starting new conversation...');
             });
 
             // Error handling
@@ -610,19 +611,20 @@
             );
         }
 
-        // Start a new conversation
+        // Start a new conversation by resetting
         function startNewConversation() {
-            console.log('Starting new conversation...');
-            clearChatMessages();
-            displayedMessageIds.clear();
-            userSentMessages.clear();
-            hideDisconnectedOverlay();
-            updateStatus('Starting new conversation...');
+            console.log('Resetting conversation...');
+            updateStatus('Resetting conversation...');
+            disableInput();
             
-            Genesys('command', 'MessagingService.startConversation',
+            Genesys('command', 'MessagingService.resetConversation',
                 {},
                 function(result) {
-                    console.log('New conversation started successfully', result);
+                    console.log('Conversation reset successfully', result);
+                    clearChatMessages();
+                    displayedMessageIds.clear();
+                    userSentMessages.clear();
+                    hideDisconnectedOverlay();
                     updateStatus('New conversation started');
                     isConnected = true;
                     conversationStarted = true;
@@ -630,9 +632,9 @@
                     addSystemMessage('New conversation started.');
                 },
                 function(error) {
-                    console.error('Failed to start new conversation', error);
-                    addSystemMessage('Failed to start new conversation: ' + (error.message || 'Unknown error'));
-                    updateStatus('Failed to start new conversation');
+                    console.error('Failed to reset conversation', error);
+                    addSystemMessage('Failed to reset conversation: ' + (error.message || 'Unknown error'));
+                    updateStatus('Failed to reset conversation');
                     showDisconnectedOverlay();
                 }
             );
