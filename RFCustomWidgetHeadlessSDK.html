@@ -378,6 +378,7 @@
         let isInitialized = false;
         let isConnected = false;
         let conversationStarted = false;
+        let messagingServiceReady = false;
         let displayedMessageIds = new Set();
         let userSentMessages = new Set(); // Track messages we sent
         const ENVIRONMENT = 'prod-apse2';
@@ -457,8 +458,15 @@
             // Messenger is ready
             Genesys('subscribe', 'Messenger.ready', function(data) {
                 console.log('Messenger.ready', data);
-                updateStatus('Messenger ready - Clearing any existing conversation...');
+                updateStatus('Messenger ready - Waiting for MessagingService...');
                 isInitialized = true;
+            });
+
+            // MessagingService is ready - now we can use MessagingService commands
+            Genesys('subscribe', 'MessagingService.ready', function(data) {
+                console.log('MessagingService.ready', data);
+                updateStatus('MessagingService ready - Clearing any existing conversation...');
+                messagingServiceReady = true;
                 
                 // Clear any existing conversation first, then start a new one
                 Genesys('command', 'MessagingService.clearConversation', 
@@ -605,6 +613,11 @@
 
         // Start a conversation
         function startConversation() {
+            if (!messagingServiceReady) {
+                console.log('MessagingService not ready yet, waiting...');
+                return;
+            }
+
             console.log('Starting conversation...');
             updateStatus('Starting conversation...');
             
@@ -627,6 +640,12 @@
 
         // Start a new conversation by resetting
         function startNewConversation() {
+            if (!messagingServiceReady) {
+                console.log('MessagingService not ready');
+                addSystemMessage('Messaging service not ready. Please wait.');
+                return;
+            }
+
             console.log('Resetting conversation...');
             updateStatus('Resetting conversation...');
             disableInput();
@@ -677,7 +696,7 @@
 
             if (!message) return;
 
-            if (!isConnected) {
+            if (!isConnected || !messagingServiceReady) {
                 addSystemMessage('Please wait for connection to be established.');
                 return;
             }
@@ -705,7 +724,7 @@
 
         // Send a quick reply
         function sendQuickReply(payload) {
-            if (!isConnected) {
+            if (!isConnected || !messagingServiceReady) {
                 addSystemMessage('Please wait for connection to be established.');
                 return;
             }
