@@ -457,11 +457,25 @@
             // Messenger is ready
             Genesys('subscribe', 'Messenger.ready', function(data) {
                 console.log('Messenger.ready', data);
-                updateStatus('Messenger ready - Starting conversation...');
+                updateStatus('Messenger ready - Clearing any existing conversation...');
                 isInitialized = true;
                 
-                // Automatically start the conversation
-                startConversation();
+                // Clear any existing conversation first, then start a new one
+                Genesys('command', 'MessagingService.clearConversation', 
+                    {}, 
+                    function() {
+                        console.log('Existing conversation cleared');
+                        updateStatus('Starting new conversation...');
+                        // Now start the conversation
+                        startConversation();
+                    },
+                    function(error) {
+                        console.log('No existing conversation to clear or clear failed:', error);
+                        // Even if clear fails, still try to start conversation
+                        updateStatus('Starting conversation...');
+                        startConversation();
+                    }
+                );
             });
 
             // Messages received
