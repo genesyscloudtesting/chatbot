@@ -116,6 +116,33 @@
             padding: 0 8px;
         }
 
+        .quick-replies {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+            max-width: 70%;
+        }
+
+        .message.agent .quick-replies {
+            align-self: flex-start;
+        }
+
+        .quick-reply-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .quick-reply-button:hover {
+            background: #5568d3;
+        }
+
         .chat-input-container {
             padding: 20px;
             background: white;
@@ -384,7 +411,7 @@
                 enableInput();
             });
 
-            // Messages received - SIMPLIFIED LOGIC
+            // Messages received
             Genesys('subscribe', 'MessagingService.messagesReceived', function(data) {
                 console.log('=== MessagingService.messagesReceived ===');
                 console.log('Full data:', JSON.stringify(data, null, 2));
@@ -392,11 +419,7 @@
                 if (data && data.messages) {
                     data.messages.forEach(msg => {
                         console.log('Processing message ID:', msg.id);
-                        console.log('Message direction:', msg.direction);
-                        console.log('Message type:', msg.type);
-                        console.log('Message text:', msg.text);
-                        console.log('Message from:', msg.from);
-                        console.log('Full message object:', JSON.stringify(msg, null, 2));
+                        console.log('Direction:', msg.direction, 'Type:', msg.type, 'OriginatingEntity:', msg.originatingEntity);
 
                         // Skip if we've already displayed this message
                         if (displayedMessageIds.has(msg.id)) {
@@ -404,30 +427,50 @@
                             return;
                         }
 
-                        // Get the message text
-                        const messageText = msg.text || msg.body;
-                        
-                        if (!messageText) {
-                            console.log('Skipping - no text content');
-                            return;
-                        }
-
-                        // Skip messages we sent ourselves
-                        if (userSentMessages.has(messageText)) {
-                            console.log('Skipping - this is our own message');
-                            userSentMessages.delete(messageText); // Remove from tracking
+                        // Skip Event type messages (like Presence)
+                        if (msg.type === 'Event') {
+                            console.log('Skipping - Event type message');
                             displayedMessageIds.add(msg.id);
                             return;
                         }
 
-                        // Display ALL other messages as agent messages (bot or human agent)
-                        console.log('Displaying as agent message');
-                        const senderName = (msg.from && msg.from.nickname) || 
-                                         (msg.channel && msg.channel.from && msg.channel.from.nickname) || 
-                                         'Bot';
-                        
-                        addMessage(messageText, 'agent', senderName);
-                        displayedMessageIds.add(msg.id);
+                        // Handle INBOUND messages (user's own messages echoed back)
+                        if (msg.direction === 'Inbound') {
+                            const messageText = msg.text || msg.body;
+                            if (userSentMessages.has(messageText)) {
+                                console.log('Skipping Inbound - this is our own message echoed back');
+                                userSentMessages.delete(messageText);
+                                displayedMessageIds.add(msg.id);
+                                return;
+                            }
+                        }
+
+                        // Handle OUTBOUND messages (from bot or agent)
+                        if (msg.direction === 'Outbound' && (msg.originatingEntity === 'Bot' || msg.originatingEntity === 'Human')) {
+                            const messageText = msg.text || msg.body;
+                            
+                            if (!messageText) {
+                                console.log('Skipping - no text content');
+                                return;
+                            }
+
+                            console.log('Displaying bot/agent message:', messageText);
+                            const senderName = (msg.channel && msg.channel.from && msg.channel.from.nickname) || 'Bot';
+                            
+                            // Check if message has quick replies
+                            let quickReplies = [];
+                            if (msg.type === 'Structured' && msg.content) {
+                                quickReplies = msg.content
+                                    .filter(c => c.contentType === 'QuickReply')
+                                    .map(c => c.quickReply);
+                            }
+
+                            addMessage(messageText, 'agent', senderName, quickReplies);
+                            displayedMessageIds.add(msg.id);
+                            return;
+                        }
+
+                        console.log('Message not handled - no matching condition');
                     });
                 }
             });
@@ -513,8 +556,35 @@
             });
         }
 
+        // Send a quick reply
+        function sendQuickReply(payload) {
+            if (!isConnected) {
+                addSystemMessage('Please wait for connection to be established.');
+                return;
+            }
+
+            // Track the payload as sent
+            userSentMessages.add(payload);
+
+            // Add to UI
+            addMessage(payload, 'user', 'You');
+
+            // Send via Genesys
+            Genesys('command', 'MessagingService.sendMessage', {
+                message: payload
+            }, function(result) {
+                if (result && result.error) {
+                    console.error('Error sending quick reply:', result.error);
+                    addSystemMessage('Failed to send message: ' + result.error);
+                    userSentMessages.delete(payload);
+                } else {
+                    console.log('Quick reply sent successfully:', result);
+                }
+            });
+        }
+
         // Add message to chat window
-        function addMessage(text, type, sender) {
+        function addMessage(text, type, sender, quickReplies = []) {
             const messagesContainer = document.getElementById('chatMessages');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${type}`;
@@ -522,10 +592,20 @@
             const now = new Date();
             const timeString = now.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' });
 
+            let quickRepliesHtml = '';
+            if (quickReplies && quickReplies.length > 0) {
+                quickRepliesHtml = '<div class="quick-replies">';
+                quickReplies.forEach(qr => {
+                    quickRepliesHtml += `<button class="quick-reply-button" onclick="sendQuickReply('${escapeHtml(qr.payload)}')">${escapeHtml(qr.text)}</button>`;
+                });
+                quickRepliesHtml += '</div>';
+            }
+
             messageDiv.innerHTML = `
                 <span class="message-sender">${escapeHtml(sender)}</span>
                 <div class="message-content">${escapeHtml(text)}</div>
                 <span class="message-time">${timeString}</span>
+                ${quickRepliesHtml}
             `;
 
             messagesContainer.appendChild(messageDiv);
