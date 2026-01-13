@@ -464,28 +464,11 @@
                 // Now subscribe to MessagingService.ready - embedded inside Messenger.ready
                 Genesys('subscribe', 'MessagingService.ready', function(data) {
                     console.log('MessagingService.ready', data);
-                    updateStatus('MessagingService ready - Resetting conversation...');
+                    updateStatus('MessagingService ready - Starting conversation...');
                     messagingServiceReady = true;
                     
-                    // Both Messenger and MessagingService are ready - reset conversation then start fresh
-                    Genesys('command', 'MessagingService.resetConversation', 
-                        {}, 
-                        function() {
-                            console.log('Conversation reset - starting fresh');
-                            clearChatMessages();
-                            displayedMessageIds.clear();
-                            userSentMessages.clear();
-                            updateStatus('Starting new conversation...');
-                            // Now start the conversation
-                            //startConversation();
-                        },
-                        function(error) {
-                            console.log('Reset failed or no conversation to reset:', error);
-                            // Even if reset fails, still try to start conversation
-                            updateStatus('Starting conversation...');
-                            startConversation();
-                        }
-                    );
+                    // Both Messenger and MessagingService are ready - start conversation
+                    startConversation();
                 });
             });
 
@@ -583,12 +566,26 @@
             // Conversation events
             Genesys('subscribe', 'MessagingService.conversationDisconnected', function(data) {
                 console.log('Conversation disconnected', data);
-                updateStatus('Conversation disconnected');
+                updateStatus('Conversation disconnected - Clearing session...');
                 isConnected = false;
                 conversationStarted = false;
                 addSystemMessage('Conversation has been disconnected.');
                 disableInput();
-                showDisconnectedOverlay();
+                
+                // Clear the messenger session
+                Genesys('command', 'Messenger.clear', 
+                    {},
+                    function() {
+                        console.log('Messenger session cleared successfully');
+                        updateStatus('Session cleared');
+                        showDisconnectedOverlay();
+                    },
+                    function(error) {
+                        console.error('Failed to clear messenger session:', error);
+                        updateStatus('Conversation disconnected');
+                        showDisconnectedOverlay();
+                    }
+                );
             });
 
             // Conversation cleared
