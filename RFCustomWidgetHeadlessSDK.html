@@ -465,20 +465,20 @@
             // MessagingService is ready - now we can use MessagingService commands
             Genesys('subscribe', 'MessagingService.ready', function(data) {
                 console.log('MessagingService.ready', data);
-                updateStatus('MessagingService ready - Clearing any existing conversation...');
+                updateStatus('MessagingService ready - Clearing any existing session...');
                 messagingServiceReady = true;
                 
-                // Clear any existing conversation first, then start a new one
-                Genesys('command', 'MessagingService.clearConversation', 
+                // Clear any existing session first, then start a new conversation
+                Genesys('command', 'MessagingService.clearSession', 
                     {}, 
                     function() {
-                        console.log('Existing conversation cleared');
+                        console.log('Existing session cleared');
                         updateStatus('Starting new conversation...');
                         // Now start the conversation
                         startConversation();
                     },
                     function(error) {
-                        console.log('No existing conversation to clear or clear failed:', error);
+                        console.log('No existing session to clear or clear failed:', error);
                         // Even if clear fails, still try to start conversation
                         updateStatus('Starting conversation...');
                         startConversation();
