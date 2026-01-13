@@ -415,9 +415,12 @@
             Genesys('subscribe', 'MessagingService.messagesReceived', function(data) {
                 console.log('=== MessagingService.messagesReceived ===');
                 console.log('Full data:', JSON.stringify(data, null, 2));
-                
+
+                console.log('Debug: Before IF');
                 if (data && data.messages) {
+                    console.log('Debug: Inside IF');
                     data.messages.forEach(msg => {
+                        console.log('Debug: Inside for');
                         console.log('Processing message ID:', msg.id);
                         console.log('Direction:', msg.direction, 'Type:', msg.type, 'OriginatingEntity:', msg.originatingEntity);
 
@@ -473,6 +476,7 @@
                         console.log('Message not handled - no matching condition');
                     });
                 }
+                console.log('Debug: After IF');
             });
 
             // Typing indicator
